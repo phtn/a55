@@ -1,10 +1,11 @@
 import { AppShell } from '@/components/app-shell'
+import { type Page } from '@/types/dashboard'
 import { Metadata } from 'next'
 import { AnimatedContent } from './animated-content'
 
 interface PageProps {
   params: Promise<{
-    category: string
+    page: Page
   }>
 }
 
@@ -22,10 +23,10 @@ export const metadata: Metadata = {
 }
 
 const Page = async ({ params }: PageProps) => {
-  const { category } = await params
+  const { page } = await params
   return (
     <AppShell>
-      <AnimatedContent key={category} category={category} />
+      <AnimatedContent key={page} page={page} />
     </AppShell>
   )
 }

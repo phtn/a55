@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation'
 import { ThemeToggle } from './theme-toggle'
 
 const navItems: { icon: IconName; label: string; path: string }[] = [
-  { icon: 'theme', label: 'Funding', path: '/' },
-  { icon: 'arrow-right', label: 'Transfer', path: '/explore' },
-  { icon: 'information', label: 'Icons', path: '/icons' },
-  { icon: 'cf-pen', label: 'Bets', path: '/markets' }
+  { icon: 'theme', label: 'Overview', path: '/' },
+  { icon: 'cf-pen', label: 'Markets', path: '/markets' },
+  { icon: 'arrow-right', label: 'Explore', path: '/explore' },
+  { icon: 'information', label: 'Icons', path: '/icons' }
 ]
 
 export const Sidebar = () => {

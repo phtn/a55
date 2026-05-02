@@ -20,7 +20,7 @@ export const IconsPage = () => {
   return (
     <div className='min-h-screen w-[calc(100vw-216px)] overflow-x-hidden'>
       <div className='h-16 font-okx font-semibold text-lg flex items-center justify-start space-x-4'>
-        <h1 className='tracking-tight'>Icons</h1>
+        <span className='text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground'>Total</span>
         <span
           className={cn('flex items-center justify-center w-8 aspect-square text-base px-2 text-foreground', {
             'text-orange-300': filteredIcons.length === 0

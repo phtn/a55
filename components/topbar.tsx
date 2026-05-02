@@ -1,62 +1,76 @@
 'use client'
 import { useTheme } from '@/components/theme-provider'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
-import { SubmitEvent, useState, ViewTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { SubmitEvent, useState } from 'react'
 
 const PixelGrid = dynamic(() => import('three-px-react').then((mod) => mod.PixelGrid), {
   ssr: false
 })
 
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Overview',
+  '/explore': 'Explore Stocks',
+  '/icons': 'Icons',
+  '/markets': 'Global Markets',
+  '/watchlist': 'Watchlist'
+}
+
+const formatSegment = (segment: string) =>
+  segment
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+
+const getPageTitle = (pathname: string) => {
+  if (PAGE_TITLES[pathname]) {
+    return PAGE_TITLES[pathname]
+  }
+
+  const segments = pathname.split('/').filter(Boolean)
+
+  if (segments[0] === 'company' && segments[1]) {
+    return segments[1].toUpperCase()
+  }
+
+  return segments.length > 0 ? formatSegment(segments[segments.length - 1]) : PAGE_TITLES['/']
+}
+
 export const TopBar = () => {
-  const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const navigate = useRouter()
+  const pathname = usePathname()
   const { resolvedTheme } = useTheme()
+  const pageTitle = getPageTitle(pathname ?? '')
 
   const handleSearch = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (query.trim()) {
       navigate.push(`/company/${query.trim().toUpperCase()}`)
       setQuery('')
-      setSearchOpen(false)
     }
   }
 
   return (
-    <header className='sticky top-0 z-40 flex h-16 items-center gap-4 border-b-[0.5px] border-dotted border-border px-4 sm:gap-8 sm:px-8'>
-      <div className='flex min-w-0 flex-1 items-center justify-between gap-4'>
-        <h2 className='font-display text-sm tracking-wider'>Template-05-2026</h2>
-        <h3 className='font-display hidden text-sm text-foreground md:block'>
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-        </h3>
-      </div>
+    <header className='sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70'>
+      <div className='flex min-h-16 items-center gap-4 px-4 sm:gap-6 sm:px-8'>
+        <div className='flex min-w-0 flex-1 items-center gap-4 sm:gap-6'>
+          <div className='min-w-0 flex-1'>
+            <h1 className='truncate font-display text-2xl font-bold text-foreground sm:text-lg'>{pageTitle}</h1>
+          </div>
 
-      <div className='flex items-center gap-3 sm:gap-4'>
-        <ViewTransition>
-          {searchOpen && (
-            <form
-              // initial={{ width: 0, opacity: 0 }}
-              // animate={{ width: 280, opacity: 1 }}
-              // exit={{ width: 0, opacity: 0 }}
-              // transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              onSubmit={handleSearch}
-              className='overflow-hidden'>
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder='Search symbol (e.g. AAPL)...'
-                className='h-9 rounded-full border border-border/60 bg-muted/60 px-4 text-sm font-mono text-foreground outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-ring'
-                onBlur={() => {
-                  if (!query) setSearchOpen(false)
-                }}
-              />
-            </form>
-          )}
-        </ViewTransition>
+          <form onSubmit={handleSearch} className='hidden w-full max-w-xs md:block lg:max-w-sm'>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder='Search'
+              className='h-9 w-full rounded-xs px-4 text-sm font-display text-foreground outline-none placeholder:text-foreground/40 focus:ring-1 focus:ring-ring'
+            />
+          </form>
+        </div>
 
-        <div className='hidden sm:block'>
+        <div className='hidden shrink-0 sm:block'>
           <PixelGrid animation='snake' color={resolvedTheme === 'dark' ? '#f5f5f5' : '#CCC'} duration={1000} />
         </div>
       </div>

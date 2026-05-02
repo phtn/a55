@@ -1,15 +1,18 @@
 'use client'
 
 import { Content } from '@/app/content'
+import { Page } from '@/types/dashboard'
 import gsap from 'gsap'
 import { useEffect, useRef } from 'react'
+import { Explore } from './explore'
 import { IconsPage } from './icons-page'
+import { Markets } from './markets'
 
 interface AnimatedContentProps {
-  category: string
+  page: Page
 }
 
-export const AnimatedContent = ({ category }: AnimatedContentProps) => {
+export const AnimatedContent = ({ page }: AnimatedContentProps) => {
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,25 +47,23 @@ export const AnimatedContent = ({ category }: AnimatedContentProps) => {
     }, rootRef)
 
     return () => ctx.revert()
-  }, [category])
+  }, [page])
 
-  switch (category) {
-    case 'funding':
-      break
-    case 'transfer':
-      break
+  switch (page) {
+    case 'markets':
+      return <Markets />
+    case 'explore':
+      return <Explore />
     case 'icons':
       return (
         <div ref={rootRef}>
           <IconsPage />
         </div>
       )
-    case 'bets':
-      break
     default:
       return (
         <div ref={rootRef}>
-          <Content category={category} />
+          <Content page={page} />
         </div>
       )
   }
