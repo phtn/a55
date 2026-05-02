@@ -1,0 +1,97 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Okxs';
+  src: url('/fonts/okxs-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Okxs';
+  src: url('/fonts/okxs-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.985 0.002 264.38);
+  --foreground: oklch(0.21 0.01 264.52);
+  --surface: oklch(0.998 0 0);
+  --muted: oklch(0.953 0.004 264.54);
+  --muted-foreground: oklch(0.53 0.015 264.63);
+  --border: oklch(0.802 0.006 264.51);
+  --primary: oklch(0.21 0.01 264.52);
+  --positive: oklch(0.72 0.17 155.61);
+  --ring: oklch(0.62 0.12 244.42);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --background: oklch(0.21 0.006 285.89);
+  --foreground: oklch(0.962 0.003 264.54);
+  --surface: oklch(0.254 0.008 286.03);
+  --muted: oklch(0.288 0.008 285.95);
+  --muted-foreground: oklch(0.72 0.015 264.41);
+  --border: oklch(0.36 0.01 286.01);
+  --primary: oklch(0.962 0.003 264.54);
+  --positive: oklch(0.79 0.18 155.82);
+  --ring: oklch(0.75 0.09 244.86);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-positive: var(--positive);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-okx: 'Okxs', sans-serif;
+  --font-display: var(--font-okx);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+}
+
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-theme-transition='to-light']::view-transition-old(root) {
+  z-index: 1;
+}
+
+html[data-theme-transition='to-light']::view-transition-new(root) {
+  z-index: 999;
+}
+
+html[data-theme-transition='to-dark']::view-transition-old(root) {
+  z-index: 1;
+}
+
+html[data-theme-transition='to-dark']::view-transition-new(root) {
+  z-index: 999;
+}
