@@ -2,8 +2,9 @@
 
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
-import type { ETF } from '@/lib/tikr/types'
+import type { ETF, Movers } from '@/lib/tikr/types'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 const PixelGrid = dynamic(() => import('three-px-react').then((mod) => mod.PixelGrid), {
@@ -26,6 +27,8 @@ type OverviewQuote = ETF['last'][number] & {
   history: HistoryPoint[]
 }
 
+type MoverEntry = Movers['active'][number] | Movers['gainers'][number] | Movers['losers'][number]
+
 const EMPTY_HISTORY: HistoryPoint[] = []
 
 const getPriceChartConfig = (label: string, positive: boolean) =>
@@ -47,7 +50,7 @@ const formatPrice = (value: number) =>
     maximumFractionDigits: 2
   }).format(value)
 
-const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`
 
 const formatUpdateTime = (timestamp: number) => {
   const normalized = timestamp > 1_000_000_000_000 ? timestamp : timestamp * 1000
@@ -68,10 +71,34 @@ const formatUpdateTime = (timestamp: number) => {
 const toHistoryPointLabel = (point: ETF['last'][number]['ts'][number], index: number) =>
   point.label || point.minute || point.date || `Point ${index + 1}`
 
+const getMoverName = (quote: MoverEntry) => ('companyName' in quote ? quote.companyName : quote.symbol)
+
+const getCompanyHref = (symbol: string, cid: number, tid: number) => ({
+  pathname: `/company/${symbol}`,
+  query: {
+    cid: String(cid),
+    tid: String(tid)
+  }
+})
+
+const readApiError = async (response: Response, fallbackMessage: string) => {
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    const payload = (await response.json()) as { error?: string }
+    return payload.error || fallbackMessage
+  }
+
+  return (await response.text()) || fallbackMessage
+}
+
 export const Content = ({ page }: ContentProps) => {
-  const [data, setData] = useState<ETF | null>(null)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
-  const [error, setError] = useState<string | null>(null)
+  const [quoteData, setQuoteData] = useState<ETF | null>(null)
+  const [quoteStatus, setQuoteStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [moversData, setMoversData] = useState<Movers | null>(null)
+  const [moversStatus, setMoversStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [moversError, setMoversError] = useState<string | null>(null)
   const [requestKey, setRequestKey] = useState(0)
   const [activeSymbol, setActiveSymbol] = useState('')
 
@@ -83,31 +110,56 @@ export const Content = ({ page }: ContentProps) => {
     const controller = new AbortController()
 
     const load = async () => {
-      setStatus('loading')
-      setError(null)
+      setQuoteStatus('loading')
+      setQuoteError(null)
+      setMoversStatus('loading')
+      setMoversError(null)
 
-      try {
+      const loadQuotes = async () => {
         const response = await fetch('/api/tikr', {
           signal: controller.signal
         })
 
         if (!response.ok) {
-          throw new Error((await response.text()) || 'Failed to load overview data')
+          throw new Error(await readApiError(response, 'Failed to load overview data'))
         }
 
         const nextData = (await response.json()) as ETF
-        setData(nextData)
+        setQuoteData(nextData)
         setActiveSymbol((current) =>
           nextData.last.some((quote) => quote.symbol === current) ? current : (nextData.last[0]?.symbol ?? '')
         )
-        setStatus('ready')
-      } catch (nextError) {
-        if (controller.signal.aborted) {
-          return
+        setQuoteStatus('ready')
+      }
+
+      const loadMovers = async () => {
+        const response = await fetch('/api/tikr-movers', {
+          signal: controller.signal
+        })
+
+        if (!response.ok) {
+          throw new Error(await readApiError(response, 'Failed to load stock movers'))
         }
 
-        setStatus('error')
-        setError(nextError instanceof Error ? nextError.message : 'Unknown error')
+        const nextData = (await response.json()) as Movers
+        setMoversData(nextData)
+        setMoversStatus('ready')
+      }
+
+      const [quoteResult, moversResult] = await Promise.allSettled([loadQuotes(), loadMovers()])
+
+      if (controller.signal.aborted) {
+        return
+      }
+
+      if (quoteResult.status === 'rejected') {
+        setQuoteStatus('error')
+        setQuoteError(quoteResult.reason instanceof Error ? quoteResult.reason.message : 'Unknown error')
+      }
+
+      if (moversResult.status === 'rejected') {
+        setMoversStatus('error')
+        setMoversError(moversResult.reason instanceof Error ? moversResult.reason.message : 'Unknown error')
       }
     }
 
@@ -118,14 +170,41 @@ export const Content = ({ page }: ContentProps) => {
 
   const quotes = useMemo<OverviewQuote[]>(
     () =>
-      (data?.last ?? []).map((quote) => ({
+      (quoteData?.last ?? []).map((quote) => ({
         ...quote,
         history: quote.ts.map((point, index) => ({
           label: toHistoryPointLabel(point, index),
           price: point.close
         }))
       })),
-    [data]
+    [quoteData]
+  )
+
+  const moverSections = useMemo(
+    () =>
+      moversData
+        ? [
+            {
+              key: 'active',
+              title: 'Most Active',
+              description: 'Highest-volume names in the session',
+              items: moversData.active
+            },
+            {
+              key: 'gainers',
+              title: 'Top Gainers',
+              description: 'Leaders by percentage move',
+              items: moversData.gainers
+            },
+            {
+              key: 'losers',
+              title: 'Top Losers',
+              description: 'Biggest laggards by percentage move',
+              items: moversData.losers
+            }
+          ]
+        : [],
+    [moversData]
   )
 
   if (page === 'watchlist') {
@@ -164,7 +243,7 @@ export const Content = ({ page }: ContentProps) => {
         </button>
       </div>
 
-      {status === 'loading' && (
+      {quoteStatus === 'loading' && (
         <div className='rounded-2xl border border-border/50 bg-background/70 p-4 sm:p-5'>
           <div className='flex items-center justify-between gap-4'>
             <div className='space-y-2'>
@@ -189,21 +268,21 @@ export const Content = ({ page }: ContentProps) => {
         </div>
       )}
 
-      {status === 'error' && (
+      {quoteStatus === 'error' && (
         <div className='rounded-2xl border border-destructive/30 bg-destructive/5 p-5'>
           <p className='font-medium text-foreground'>Failed to load Tikr overview</p>
-          <p className='mt-1 text-sm text-muted-foreground'>{error}</p>
+          <p className='mt-1 text-sm text-muted-foreground'>{quoteError}</p>
         </div>
       )}
 
-      {status === 'ready' && !activeQuote && (
+      {quoteStatus === 'ready' && !activeQuote && (
         <div className='rounded-2xl border border-border/50 bg-muted/20 p-5'>
           <p className='font-medium text-foreground'>Tikr returned no instruments.</p>
           <p className='mt-1 text-sm text-muted-foreground'>Check the configured ids or the upstream response shape.</p>
         </div>
       )}
 
-      {status === 'ready' && activeQuote && (
+      {quoteStatus === 'ready' && activeQuote && (
         <>
           <div className='grid grid-cols-1 xl:grid-cols-[minmax(0,1.8fr)_20rem] gap-3'>
             <div className='rounded-lg bg-border/5 p-4 sm:p-5'>
@@ -285,7 +364,14 @@ export const Content = ({ page }: ContentProps) => {
               </div>
 
               <div className='mt-4 space-y-2'>
-                <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>ETFs</p>
+                <div className='flex items-center justify-between gap-3'>
+                  <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>ETFs</p>
+                  <Link
+                    href={getCompanyHref(activeQuote.symbol, activeQuote.cid, activeQuote.tid)}
+                    className='text-xs font-mono text-primary transition-colors hover:text-foreground'>
+                    Open company
+                  </Link>
+                </div>
                 <div className='flex flex-wrap gap-2'>
                   {quotes.map((quote) => (
                     <button
@@ -366,6 +452,91 @@ export const Content = ({ page }: ContentProps) => {
               )
             })}
           </div>
+
+          <section className='space-y-3'>
+            <div className='space-y-1'>
+              <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>Overview it</p>
+              <div className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
+                <h2 className='font-display text-2xl font-semibold tracking-tight text-foreground'>Stock movers</h2>
+                <p className='text-sm text-muted-foreground'>
+                  Most active, gainers, and losers from Tikr&apos;s `overview_it` feed.
+                </p>
+              </div>
+            </div>
+
+            {moversStatus === 'loading' && (
+              <div className='grid grid-cols-1 lg:grid-cols-3 gap-3'>
+                {Array.from({ length: 3 }, (_, index) => (
+                  <div key={index} className='rounded-xl bg-border/5 p-4'>
+                    <div className='space-y-2'>
+                      <div className='h-3 w-20 rounded-full bg-muted/60' />
+                      <div className='h-6 w-32 rounded-full bg-muted/60' />
+                    </div>
+                    <div className='mt-4 space-y-2'>
+                      {Array.from({ length: 5 }, (_, row) => (
+                        <div key={row} className='h-14 rounded-xl bg-background/70' />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {moversStatus === 'error' && (
+              <div className='rounded-2xl border border-border/50 bg-muted/20 p-5'>
+                <p className='font-medium text-foreground'>Failed to load stock movers</p>
+                <p className='mt-1 text-sm text-muted-foreground'>{moversError}</p>
+              </div>
+            )}
+
+            {moversStatus === 'ready' && moversData && (
+              <div className='grid grid-cols-1 lg:grid-cols-3 gap-3'>
+                {moverSections.map((section) => (
+                  <div key={section.key} className='rounded-xl bg-border/5 p-4'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <div className='space-y-1'>
+                        <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>
+                          {section.key}
+                        </p>
+                        <h3 className='font-display text-xl font-semibold text-foreground'>{section.title}</h3>
+                        <p className='text-sm text-muted-foreground'>{section.description}</p>
+                      </div>
+                      <span className='rounded-full bg-background/80 px-2 py-1 text-[10px] font-mono text-muted-foreground'>
+                        {section.items.length}
+                      </span>
+                    </div>
+
+                    <div className='mt-4 space-y-2'>
+                      {section.items.slice(0, 6).map((quote) => {
+                        const isPositive = quote.change >= 0
+
+                        return (
+                          <Link
+                            key={`${section.key}-${quote.cid}-${quote.tid}`}
+                            href={getCompanyHref(quote.symbol, quote.cid, quote.tid)}
+                            className='flex items-center justify-between gap-3 rounded-xl bg-background/80 px-3 py-3 transition-colors hover:bg-background'>
+                            <div className='min-w-0'>
+                              <p className='text-sm font-semibold text-foreground'>{quote.symbol}</p>
+                              <p className='truncate text-[11px] text-muted-foreground'>{getMoverName(quote)}</p>
+                            </div>
+
+                            <div className='text-right'>
+                              <p className='text-sm font-mono font-semibold text-foreground'>
+                                {formatPrice(quote.latestPrice)}
+                              </p>
+                              <p className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
+                                {formatPercent(quote.changePercent)}
+                              </p>
+                            </div>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>

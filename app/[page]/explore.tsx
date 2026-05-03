@@ -286,7 +286,7 @@ export const Explore = () => {
                   <EvilAreaChart
                     data={stock.sparkline}
                     chartConfig={isPositive ? POSITIVE_SPARKLINE_CONFIG : NEGATIVE_SPARKLINE_CONFIG}
-                    className='h-full w-full min-h-0 !aspect-auto'
+                    className='h-full w-full min-h-0 aspect-auto!'
                     chartProps={{
                       margin: {
                         top: 2,
