@@ -2,9 +2,9 @@
 
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
+import { usePageTitle } from '@/components/page-title-provider'
 import { Eyebrow } from '@/components/ui/eyebrow'
 import { Title } from '@/components/ui/title'
-import Link from 'next/link'
 import { startTransition, useEffect, useMemo, useState } from 'react'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
@@ -14,6 +14,8 @@ const HISTORY_LOOKBACK_DAYS = 400
 const RECENT_PRICE_POINTS = 252
 
 type AsyncStatus = 'loading' | 'ready' | 'error'
+
+type OptionalAsyncStatus = AsyncStatus | 'idle'
 
 type PriceHistoryPoint = {
   date: string
@@ -170,6 +172,19 @@ interface CompanyPageData {
   summary: CompanySummaryApi
 }
 
+interface GrokProfileApiData {
+  title: string | null
+  factChecked: string | null
+  leadHtml: string
+  leadText: string
+}
+
+interface GrokProfileApiResponse {
+  page: string
+  url: string
+  data: GrokProfileApiData
+}
+
 interface CompanyPriceClientProps {
   symbol: string
 }
@@ -313,11 +328,30 @@ const fetchYf2 = async <T,>(request: Yf2RequestBody, signal: AbortSignal) => {
   return payload.data
 }
 
+const getGrokipediaHref = (query: string) =>
+  `https://grokipedia.com/page/${encodeURIComponent(query.trim().replace(/\s+/g, '_'))}`
+
+const fetchGrokProfile = async (query: string, signal: AbortSignal) => {
+  const response = await fetch(`/api/grok?query=${encodeURIComponent(query)}`, {
+    signal
+  })
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response, 'Failed to load Grokipedia profile'))
+  }
+
+  return (await response.json()) as GrokProfileApiResponse
+}
+
 export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const [data, setData] = useState<CompanyPageData | null>(null)
   const [status, setStatus] = useState<AsyncStatus>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [grokProfile, setGrokProfile] = useState<GrokProfileApiResponse | null>(null)
+  const [grokStatus, setGrokStatus] = useState<OptionalAsyncStatus>('idle')
+  const [grokError, setGrokError] = useState<string | null>(null)
   const [requestKey, setRequestKey] = useState(0)
+  const { setTitle } = usePageTitle()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -325,56 +359,94 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
     const load = async () => {
       setStatus('loading')
       setError(null)
+      setGrokProfile(null)
+      setGrokStatus('idle')
+      setGrokError(null)
+
+      const loadGrok = (query: string) => {
+        setGrokStatus('loading')
+
+        void fetchGrokProfile(query, controller.signal)
+          .then((nextProfile) => {
+            if (controller.signal.aborted) {
+              return
+            }
+
+            setGrokProfile(nextProfile)
+            setGrokStatus('ready')
+          })
+          .catch((nextError) => {
+            if (controller.signal.aborted) {
+              return
+            }
+
+            setGrokProfile(null)
+            setGrokStatus('error')
+            setGrokError(nextError instanceof Error ? nextError.message : 'Unknown error')
+          })
+      }
 
       try {
-        const [quote, chart, summary] = await Promise.all([
-          fetchYf2<CompanyQuoteApi>(
-            {
-              operation: 'quote',
-              symbol,
-              options: {
-                fields: [
-                  'symbol',
-                  'currency',
-                  'shortName',
-                  'longName',
-                  'quoteType',
-                  'fullExchangeName',
-                  'quoteSourceName',
-                  'regularMarketPrice',
-                  'regularMarketPreviousClose',
-                  'regularMarketChange',
-                  'regularMarketChangePercent',
-                  'regularMarketTime',
-                  'regularMarketVolume',
-                  'marketCap'
-                ]
-              }
-            },
-            controller.signal
-          ),
-          fetchYf2<CompanyChartApiData>(
-            {
-              operation: 'chart',
-              symbol,
-              options: {
-                period1: getHistoryStart(),
-                interval: '1d'
-              }
-            },
-            controller.signal
-          ),
-          fetchYf2<CompanySummaryApi>(
-            {
-              operation: 'quoteSummary',
-              symbol,
-              options: {
-                modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'financialData', 'assetProfile', 'earnings']
-              }
-            },
-            controller.signal
-          )
-        ])
+        const quotePromise = fetchYf2<CompanyQuoteApi>(
+          {
+            operation: 'quote',
+            symbol,
+            options: {
+              fields: [
+                'symbol',
+                'currency',
+                'shortName',
+                'longName',
+                'quoteType',
+                'fullExchangeName',
+                'quoteSourceName',
+                'regularMarketPrice',
+                'regularMarketPreviousClose',
+                'regularMarketChange',
+                'regularMarketChangePercent',
+                'regularMarketTime',
+                'regularMarketVolume',
+                'marketCap'
+              ]
+            }
+          },
+          controller.signal
+        )
+        const chartPromise = fetchYf2<CompanyChartApiData>(
+          {
+            operation: 'chart',
+            symbol,
+            options: {
+              period1: getHistoryStart(),
+              interval: '1d'
+            }
+          },
+          controller.signal
+        )
+        const summaryPromise = fetchYf2<CompanySummaryApi>(
+          {
+            operation: 'quoteSummary',
+            symbol,
+            options: {
+              modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'financialData', 'assetProfile', 'earnings']
+            }
+          },
+          controller.signal
+        )
+
+        const quote = await quotePromise
+        const quoteCompanyName = quote.longName || quote.shortName
+
+        if (quoteCompanyName) {
+          loadGrok(quoteCompanyName)
+        }
+
+        const [chart, summary] = await Promise.all([chartPromise, summaryPromise])
+        const fallbackCompanyName = chart.meta.longName || chart.meta.shortName
+
+        if (!quoteCompanyName && fallbackCompanyName) {
+          loadGrok(fallbackCompanyName)
+        }
 
         if (controller.signal.aborted) {
           return
@@ -387,9 +459,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           return
         }
 
+        controller.abort()
         setData(null)
         setStatus('error')
         setError(nextError instanceof Error ? nextError.message : 'Unknown error')
+        setGrokProfile(null)
+        setGrokStatus('idle')
+        setGrokError(null)
       }
     }
 
@@ -407,6 +483,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const financialCurrencyCode = data?.summary.financialData?.financialCurrency || currencyCode
   const companyName =
     data?.quote.longName || data?.quote.shortName || data?.chart.meta.longName || data?.chart.meta.shortName || symbol
+
+  useEffect(() => {
+    setTitle(companyName)
+
+    return () => setTitle(null)
+  }, [companyName, setTitle])
+
   const latestPrice = toNumber(
     data?.quote.regularMarketPrice ?? data?.summary.financialData?.currentPrice ?? data?.chart.meta.regularMarketPrice
   )
@@ -429,6 +512,21 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const sourceName = data?.quote.quoteSourceName || data?.summary.price?.quoteSourceName || exchangeName
   const latestUpdate =
     data?.quote.regularMarketTime || data?.summary.price?.regularMarketTime || data?.chart.meta.regularMarketTime
+  const grokQuery =
+    data?.quote.longName || data?.quote.shortName || data?.chart.meta.longName || data?.chart.meta.shortName || null
+  const yahooProfile = data?.summary.assetProfile?.longBusinessSummary?.trim() || null
+  const usingGrokProfile = grokStatus === 'ready' && Boolean(grokProfile?.data.leadText)
+  const profileText =
+    (usingGrokProfile ? grokProfile?.data.leadText : null) ||
+    (grokStatus === 'error' || grokStatus === 'idle' ? yahooProfile : null) ||
+    null
+  const profileParagraphs = profileText
+    ? profileText
+        .split('\n\n')
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean)
+    : []
+  const grokipediaHref = grokProfile?.url || (grokQuery ? getGrokipediaHref(grokQuery) : null)
   const sector = data?.summary.assetProfile?.sector || 'N/A'
   const industry = data?.summary.assetProfile?.industry || 'N/A'
   const website = data?.summary.assetProfile?.website
@@ -537,9 +635,6 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
     <div className='max-w-7xl space-y-6'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
         <div className='space-y-1'>
-          <p className='font-display text-foreground/50 text-[8px] uppercase tracking-[0.24em]'>
-            {formatRecommendation(analystRecommendation)}
-          </p>
           <div className='flex flex-wrap items-end gap-3 font-display'>
             <h1 className='text-3xl font-semibold tracking-tight text-foreground'>{symbol}</h1>
             <h2 className='pb-1 text-base text-foreground/80'>{companyName}</h2>
@@ -553,12 +648,9 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           <button
             type='button'
             onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
-            className='inline-flex h-9 items-center justify-center rounded-full border border-border/60 bg-background px-4 text-xs font-mono text-foreground transition-colors hover:bg-muted/40'>
+            className='inline-flex h-9 items-center justify-center rounded-full border border-border bg-border px-4 text-xs font-mono text-foreground transition-colors hover:bg-muted/40'>
             Refresh
           </button>
-          <Link href='/' className='font-display text-foreground/70 text-sm transition-colors hover:text-foreground'>
-            Back to overview
-          </Link>
         </div>
       </div>
 
@@ -594,13 +686,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
       {status === 'ready' && data && (
         <>
           <div className='grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.9fr)_22rem]'>
-            <div className='rounded-lg bg-border/5 p-4 sm:p-5'>
+            <div className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-4 sm:p-5'>
               <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                 <div className='space-y-1'>
-                  <p className='font-display text-foreground/70 text-[8px] uppercase tracking-[0.24em]'>
-                    Recent price history
+                  <p className='font-display text-foreground/50 text-[8px] uppercase tracking-[0.24em]'>
+                    {formatRecommendation(analystRecommendation)}
                   </p>
-                  <div className='flex items-end gap-2'>
+                  <div className='flex items-end gap-4'>
                     <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
                       {formatNullableCurrency(latestPrice, currencyCode)}
                     </h2>
@@ -622,7 +714,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                 </div>
               </div>
 
-              <div className='mt-4 h-80'>
+              <div className='mt-4 h-100'>
                 <EvilAreaChart
                   data={chartData}
                   chartConfig={getPriceChartConfig(`${symbol} close`, isPositive)}
@@ -658,7 +750,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             <div className=''>
               <div className='grid grid-cols-2 gap-3'>
                 {stats.map((stat, index) => (
-                  <div key={index} className='rounded-lg font-display bg-border/8 p-3'>
+                  <div key={index} className='rounded-xl font-display bg-border/6 p-3'>
                     <p className='text-foreground/60 text-[8px] uppercase tracking-[0.18em]'>{stat.label}</p>
                     <p className='mt-2 font-medium text-foreground text-base'>{stat.value}</p>
                   </div>
@@ -666,10 +758,10 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               </div>
 
               <div className='mt-4 rounded-xl bg-background/80 p-3'>
-                <p className='text-[10px] font-display uppercase tracking-[0.18em] text-muted-foreground'>Business</p>
+                <Eyebrow>Business</Eyebrow>
                 <div className='mt-2 space-y-2 text-foreground text-sm'>
                   <div className='flex items-center space-x-4'>
-                    <p>{sector}</p>
+                    <p className='font-medium'>{sector}</p>
                     <p className='text-foreground/70'>{industry}</p>
                   </div>
 
@@ -687,11 +779,9 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             </div>
           </div>
 
-          <div className='rounded-xl mt-6 p-4 sm:p-5 space-y-6'>
+          <div className='rounded-xl mt-10 space-y-6'>
             <div className='space-y-1'>
-              <Eyebrow>Financial Snapshot</Eyebrow>
               <Title>The Fundamentals</Title>
-              {/*<h2 className='font-display text-2xl font-semibold text-foreground tracking-normal'></h2>*/}
             </div>
 
             <div className='mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3'>
@@ -704,7 +794,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             </div>
 
             <div className='pt-8 space-y-1'>
-              <Eyebrow>Recent Earnings</Eyebrow>
+              {/*<Eyebrow>Recent Earnings</Eyebrow>*/}
               <Title>Quarterly Results</Title>
             </div>
 
@@ -741,6 +831,68 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                 <div className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
                   No recent Yahoo earnings rows were returned for this symbol.
                 </div>
+              )}
+            </div>
+
+            <div id='profile-info' className='rounded-xl mt-10 space-y-6'>
+              <div className='flex items-start justify-between gap-4'>
+                <div className='space-y-1'>
+                  {usingGrokProfile ? (
+                    <Eyebrow>{grokProfile?.data.factChecked || 'Grokipedia'}</Eyebrow>
+                  ) : yahooProfile ? (
+                    <Eyebrow>Yahoo Finance</Eyebrow>
+                  ) : null}
+                  <Title>Info</Title>
+                </div>
+
+                {grokipediaHref && (
+                  <a
+                    href={grokipediaHref}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='pt-1 font-display text-primary text-xs hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
+                    Open Grokipedia
+                  </a>
+                )}
+              </div>
+
+              {grokStatus === 'loading' && (
+                <div className='rounded-xl bg-border/5 p-4'>
+                  <div className='space-y-2'>
+                    <div className='h-3 w-40 rounded-full bg-muted/60' />
+                    <div className='h-3 w-full rounded-full bg-muted/50' />
+                    <div className='h-3 w-[92%] rounded-full bg-muted/50' />
+                    <div className='h-3 w-[78%] rounded-full bg-muted/50' />
+                  </div>
+                </div>
+              )}
+
+              {profileParagraphs.length > 0 && (
+                <div className='space-y-4 text-base leading-7 text-foreground/85'>
+                  {profileParagraphs.map((paragraph, index) => (
+                    <p key={`${index}-${paragraph.slice(0, 24)}`} className=' text-balance'>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {grokStatus === 'error' && !yahooProfile && (
+                <div className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
+                  {grokError || 'No Grokipedia profile was returned for this company.'}
+                </div>
+              )}
+
+              {grokStatus === 'idle' && !yahooProfile && (
+                <div className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
+                  No company profile is available yet.
+                </div>
+              )}
+
+              {grokStatus === 'error' && yahooProfile && (
+                <p className='text-xs text-muted-foreground'>
+                  Showing the Yahoo Finance summary because Grokipedia was unavailable.
+                </p>
               )}
             </div>
           </div>

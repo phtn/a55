@@ -58,7 +58,7 @@ export const FooterSection = () => {
           ease: 'power3.out',
           scrollTrigger: {
             trigger: footerRef.current,
-            start: 'top 85%',
+            start: 'top 80%',
             invalidateOnRefresh: true,
             toggleActions: 'play none none reverse'
           }
@@ -72,7 +72,7 @@ export const FooterSection = () => {
   return (
     <section ref={sectionRef} id='footer' className='relative pt-2 pl-6 md:pl-8 lg:ml-54 max-w-7xl'>
       {/* Section header */}
-      <Header title='Footer Section' tag='QUICK LINKS' id='+' ref={headerRef} />
+      <Header title='Footer' tag='QUICK LINKS' id='+' ref={headerRef} />
 
       {/* Multi-column layout */}
       <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-3 gap-8 pb-8'>
@@ -98,7 +98,7 @@ export const FooterSection = () => {
       {/* Bottom copyright */}
       <div
         ref={footerRef}
-        className='mt-4 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+        className='mt-2 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
         <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>
           © 2026 c-layer. All rights reserved.
         </p>

@@ -2,6 +2,7 @@
 
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
+import { Icon } from '@/lib/icons'
 import Link from 'next/link'
 import { startTransition, useEffect, useState } from 'react'
 import { PixelGrid } from 'three-px-react'
@@ -656,8 +657,9 @@ export const Content = ({ page }: ContentProps) => {
                     href={getExternalQuoteHref(activeQuote.symbol)}
                     target='_blank'
                     rel='noreferrer'
-                    className='text-primarytex t-xs transition-colors hover:text-foreground'>
-                    Yahoo Finance
+                    className='flex items-center space-x-1 text-primary text-xs transition-colors hover:text-foreground'>
+                    <span>Yahoo Finance</span>
+                    <Icon name='arrow-right' className='size-3.5 -rotate-25' />
                   </a>
                 </div>
                 <div className='flex flex-wrap gap-2'>
@@ -793,8 +795,7 @@ export const Content = ({ page }: ContentProps) => {
                           <Link
                             key={`${section.key}-${quote.symbol}`}
                             href={`/company/${quote.symbol}`}
-                            target='_blank'
-                            rel='noreferrer'
+                            prefetch='auto'
                             className='flex items-center justify-between gap-3 font-display py-3'>
                             <div className='min-w-0'>
                               <p className='font-bold text-sm text-foreground'>{quote.symbol}</p>
