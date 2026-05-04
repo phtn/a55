@@ -5,6 +5,7 @@ import type { ChartConfig } from '@/components/evilcharts/ui/chart'
 import { usePageTitle } from '@/components/page-title-provider'
 import { Eyebrow } from '@/components/ui/eyebrow'
 import { Title } from '@/components/ui/title'
+import { Icon } from '@/lib/icons'
 import { startTransition, useEffect, useMemo, useState } from 'react'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
@@ -834,11 +835,11 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               )}
             </div>
 
-            <div id='profile-info' className='rounded-xl mt-10 space-y-6'>
+            <div id='profile-info' className='rounded-xl my-20 space-y-6'>
               <div className='flex items-start justify-between gap-4'>
-                <div className='space-y-1'>
+                <div className='space-y-0'>
                   {usingGrokProfile ? (
-                    <Eyebrow>{grokProfile?.data.factChecked || 'Grokipedia'}</Eyebrow>
+                    <Eyebrow>{'Grokipedia'}</Eyebrow>
                   ) : yahooProfile ? (
                     <Eyebrow>Yahoo Finance</Eyebrow>
                   ) : null}
@@ -850,8 +851,9 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                     href={grokipediaHref}
                     target='_blank'
                     rel='noreferrer'
-                    className='pt-1 font-display text-primary text-xs hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
-                    Open Grokipedia
+                    className='flex items-center space-x-2 pt-1 font-display text-foreground/70 text-xs hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
+                    <Icon name='grok' className='size-3.5' />
+                    <span>{grokProfile?.data.factChecked ?? 'Read in Grokipedia'}</span>
                   </a>
                 )}
               </div>

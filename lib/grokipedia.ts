@@ -17,6 +17,11 @@ export interface GrokipediaArticleLeadResponse {
   data: GrokipediaArticleLead
 }
 
+interface ResolvedGrokipediaRequest {
+  page: string
+  url: string
+}
+
 interface ElementBounds {
   start: number
   openEnd: number
@@ -119,7 +124,24 @@ const normalizePage = (value: string) => {
 
 const queryToPage = (value: string) => requireInput(value, 'query').replace(/\s+/g, '_')
 
+const queryToPages = (value: string) => {
+  const normalizedQuery = requireInput(value, 'query')
+  const parts = normalizedQuery.split(/\s+/).filter(Boolean)
+  const fullPage = queryToPage(normalizedQuery)
+
+  if (parts.length <= 1) {
+    return [fullPage]
+  }
+
+  return [...new Set([queryToPage(parts[0] ?? normalizedQuery), fullPage])]
+}
+
 const canonicalPageUrl = (page: string) => `${DEFAULT_GROKIPEDIA_BASE_URL}${GROKIPEDIA_PAGE_PREFIX}${encodeURIComponent(page)}`
+
+const toResolvedRequest = (page: string): ResolvedGrokipediaRequest => ({
+  page,
+  url: canonicalPageUrl(page)
+})
 
 const parsePageUrl = (value: string) => {
   let parsedUrl: URL
@@ -144,13 +166,10 @@ const parsePageUrl = (value: string) => {
     throw new GrokipediaInputError('`url` must include a Grokipedia page slug.')
   }
 
-  return {
-    page,
-    url: canonicalPageUrl(page)
-  }
+  return toResolvedRequest(page)
 }
 
-export const resolveGrokipediaRequest = ({ page, query, url }: GrokipediaRequest) => {
+const resolveGrokipediaRequestCandidates = ({ page, query, url }: GrokipediaRequest): ResolvedGrokipediaRequest[] => {
   const providedFields = [
     ['page', page],
     ['query', query],
@@ -166,25 +185,19 @@ export const resolveGrokipediaRequest = ({ page, query, url }: GrokipediaRequest
   }
 
   if (url) {
-    return parsePageUrl(url)
+    return [parsePageUrl(url)]
   }
 
   if (page) {
     const normalizedPage = normalizePage(page)
 
-    return {
-      page: normalizedPage,
-      url: canonicalPageUrl(normalizedPage)
-    }
+    return [toResolvedRequest(normalizedPage)]
   }
 
-  const resolvedPage = queryToPage(query ?? '')
-
-  return {
-    page: resolvedPage,
-    url: canonicalPageUrl(resolvedPage)
-  }
+  return queryToPages(query ?? '').map(toResolvedRequest)
 }
+
+export const resolveGrokipediaRequest = (request: GrokipediaRequest) => resolveGrokipediaRequestCandidates(request)[0]
 
 const decodeHtmlEntities = (value: string) =>
   value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (entity, key: string) => {
@@ -438,55 +451,60 @@ export const loadGrokipediaArticleLead = async (
   request: GrokipediaRequest,
   fetchImpl: typeof fetch = fetch
 ): Promise<GrokipediaArticleLeadResponse> => {
-  const resolved = resolveGrokipediaRequest(request)
+  const resolvedCandidates = resolveGrokipediaRequestCandidates(request)
 
-  let response: Response
+  for (const resolved of resolvedCandidates) {
+    let response: Response
 
-  try {
-    response = await fetchImpl(resolved.url, {
-      headers: {
-        Accept: 'text/html,application/xhtml+xml'
-      },
-      signal: AbortSignal.timeout(GROKIPEDIA_TIMEOUT_MS)
-    })
-  } catch (error) {
-    if (error instanceof Error && error.name === 'TimeoutError') {
-      throw new GrokipediaUpstreamError('Timed out while fetching Grokipedia.', 504)
+    try {
+      response = await fetchImpl(resolved.url, {
+        headers: {
+          Accept: 'text/html,application/xhtml+xml'
+        },
+        signal: AbortSignal.timeout(GROKIPEDIA_TIMEOUT_MS)
+      })
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        throw new GrokipediaUpstreamError('Timed out while fetching Grokipedia.', 504)
+      }
+
+      throw new GrokipediaUpstreamError(
+        error instanceof Error ? `Failed to fetch Grokipedia: ${error.message}` : 'Failed to fetch Grokipedia.'
+      )
     }
 
-    throw new GrokipediaUpstreamError(
-      error instanceof Error ? `Failed to fetch Grokipedia: ${error.message}` : 'Failed to fetch Grokipedia.'
-    )
+    if (response.status === 404) {
+      continue
+    }
+
+    if (!response.ok) {
+      throw new GrokipediaUpstreamError(`Grokipedia upstream error ${response.status}.`)
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+
+    if (!contentType.includes('text/html')) {
+      throw new GrokipediaUpstreamError(`Unexpected Grokipedia content type: ${contentType || 'unknown'}.`)
+    }
+
+    const html = await response.text()
+    const data = extractGrokipediaArticleLead(html)
+
+    if (!data) {
+      throw new GrokipediaUpstreamError('Unexpected Grokipedia page structure: no `<article>` found.')
+    }
+
+    const finalUrl = response.url || resolved.url
+    const finalPageMatch = finalUrl.match(/\/page\/([^/?#]+)/i)
+    const finalPage = finalPageMatch ? decodeURIComponent(finalPageMatch[1]) : resolved.page
+
+    return {
+      page: finalPage,
+      url: finalUrl,
+      data
+    }
   }
 
-  if (response.status === 404) {
-    throw new GrokipediaNotFoundError(`No Grokipedia page found for \`${resolved.page}\`.`)
-  }
-
-  if (!response.ok) {
-    throw new GrokipediaUpstreamError(`Grokipedia upstream error ${response.status}.`)
-  }
-
-  const contentType = response.headers.get('content-type') ?? ''
-
-  if (!contentType.includes('text/html')) {
-    throw new GrokipediaUpstreamError(`Unexpected Grokipedia content type: ${contentType || 'unknown'}.`)
-  }
-
-  const html = await response.text()
-  const data = extractGrokipediaArticleLead(html)
-
-  if (!data) {
-    throw new GrokipediaUpstreamError('Unexpected Grokipedia page structure: no `<article>` found.')
-  }
-
-  const finalUrl = response.url || resolved.url
-  const finalPageMatch = finalUrl.match(/\/page\/([^/?#]+)/i)
-  const finalPage = finalPageMatch ? decodeURIComponent(finalPageMatch[1]) : resolved.page
-
-  return {
-    page: finalPage,
-    url: finalUrl,
-    data
-  }
+  const finalCandidate = resolvedCandidates.at(-1)
+  throw new GrokipediaNotFoundError(`No Grokipedia page found for \`${finalCandidate?.page || 'unknown'}\`.`)
 }
