@@ -1,12 +1,12 @@
 import { FooterSection } from '@/components/footer'
 import { ThemeProvider } from '@/components/theme-provider'
 import { THEME_SCRIPT } from '@/lib/theme'
+import { cn } from '@/lib/utils'
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Figtree } from 'next/font/google'
+import { Figtree, Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import { cn } from "@/lib/utils";
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
+const figtree = Figtree({ subsets: ['latin'], variable: '--font-sans' })
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -32,7 +32,7 @@ export default function RootLayout({
     <html
       lang='en'
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable)}>
+      className={cn('h-full', 'antialiased', geistSans.variable, geistMono.variable, figtree.variable, 'font-display')}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

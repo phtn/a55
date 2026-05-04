@@ -14,8 +14,8 @@ export const Header = forwardRef<HTMLDivElement, SectionHeaderProps>(function He
 ) {
   return (
     <div ref={ref} className='mb-16 pr-6 md:pr-12'>
-      <span className='font-mono text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground'>
-        <span className='font-extrabold text-foreground/70'>{id}</span>
+      <span className='font-mono text-[8px] font-semibold uppercase tracking-[0.35em]'>
+        <span className='font-extrabold text-foreground/50'>{id}</span>
         <span className='px-2 text-foreground/30'>/</span>
         {tag}
       </span>

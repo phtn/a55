@@ -5,29 +5,14 @@ interface CompanyPageProps {
   params: Promise<{
     symbol: string
   }>
-  searchParams: Promise<{
-    cid?: string
-    tid?: string
-  }>
 }
 
-const parseSearchNumber = (value: string | undefined) => {
-  if (!value) {
-    return null
-  }
-
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-const CompanyPage = async ({ params, searchParams }: CompanyPageProps) => {
-  const [{ symbol }, query] = await Promise.all([params, searchParams])
-  const cid = parseSearchNumber(query.cid)
-  const tid = parseSearchNumber(query.tid)
+const CompanyPage = async ({ params }: CompanyPageProps) => {
+  const { symbol } = await params
 
   return (
     <AppShell>
-      <CompanyPriceClient symbol={symbol.toUpperCase()} cid={cid} tid={tid} />
+      <CompanyPriceClient symbol={symbol.toUpperCase()} />
     </AppShell>
   )
 }

@@ -2,32 +2,148 @@
 
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
-import type { ETF, Movers } from '@/lib/tikr/types'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
-
-const PixelGrid = dynamic(() => import('three-px-react').then((mod) => mod.PixelGrid), {
-  ssr: false
-})
+import { startTransition, useEffect, useState } from 'react'
+import { PixelGrid } from 'three-px-react'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
 const NEGATIVE_CHART_COLOR = 'var(--muted-foreground)'
+const OVERVIEW_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'VTI', 'GLD', 'TLT', 'XLE'] as const
+const OVERVIEW_HISTORY_DAYS = 180
+const MOVER_COUNT = 6
+const MOVER_SECTION_CONFIG = [
+  {
+    key: 'active',
+    title: 'Most Active',
+    description: 'Highest-volume names in the session',
+    screenerId: 'most_actives'
+  },
+  {
+    key: 'gainers',
+    title: 'Top Gainers',
+    description: 'Leaders by percentage move',
+    screenerId: 'day_gainers'
+  },
+  {
+    key: 'losers',
+    title: 'Top Losers',
+    description: 'Biggest laggards by percentage move',
+    screenerId: 'day_losers'
+  }
+] as const
 
 interface ContentProps {
   page?: string
 }
+
+type AsyncStatus = 'loading' | 'ready' | 'error'
+type MoverSectionKey = (typeof MOVER_SECTION_CONFIG)[number]['key']
 
 type HistoryPoint = Record<string, string | number> & {
   label: string
   price: number
 }
 
-type OverviewQuote = ETF['last'][number] & {
+interface Yf2Response<T> {
+  operation: string
+  data: T
+}
+
+interface Yf2RequestBody {
+  operation: string
+  symbol?: string
+  symbols?: string[]
+  query?: string
+  options?: Record<string, unknown>
+}
+
+interface QuoteApiItem {
+  symbol: string
+  currency?: string
+  shortName?: string
+  longName?: string
+  displayName?: string
+  quoteType?: string
+  fullExchangeName?: string
+  quoteSourceName?: string
+  regularMarketPrice?: number
+  regularMarketPreviousClose?: number
+  regularMarketChange?: number
+  regularMarketChangePercent?: number
+  regularMarketTime?: string
+  regularMarketVolume?: number
+  marketCap?: number
+}
+
+interface ChartApiQuote {
+  date: string
+  close: number | null
+}
+
+interface ChartApiData {
+  meta: {
+    symbol: string
+    currency?: string
+    shortName?: string
+    longName?: string
+  }
+  quotes: ChartApiQuote[]
+}
+
+interface ScreenerApiQuote {
+  symbol: string
+  currency?: string
+  shortName?: string
+  longName?: string
+  quoteType?: string
+  fullExchangeName?: string
+  regularMarketPrice?: number
+  regularMarketPreviousClose?: number
+  regularMarketChange?: number
+  regularMarketChangePercent?: number
+  regularMarketTime?: number
+  regularMarketVolume?: number
+  marketCap?: number
+}
+
+interface ScreenerApiData {
+  quotes: ScreenerApiQuote[]
+}
+
+interface OverviewQuote {
+  symbol: string
+  name: string
+  currency: string
+  quoteType: string
+  exchange: string
+  latestPrice: number | null
+  previousClose: number | null
+  change: number | null
+  changePercent: number | null
+  latestUpdate: string | null
+  latestSource: string
+  marketCap: number | null
+  volume: number | null
   history: HistoryPoint[]
 }
 
-type MoverEntry = Movers['active'][number] | Movers['gainers'][number] | Movers['losers'][number]
+interface MoverQuote {
+  symbol: string
+  name: string
+  currency: string
+  latestPrice: number | null
+  changePercent: number | null
+  volume: number | null
+  marketCap: number | null
+  href: string
+}
+
+interface MoverSection {
+  key: MoverSectionKey
+  title: string
+  description: string
+  items: MoverQuote[]
+}
 
 const EMPTY_HISTORY: HistoryPoint[] = []
 
@@ -42,19 +158,46 @@ const getPriceChartConfig = (label: string, positive: boolean) =>
     }
   }) satisfies ChartConfig
 
-const formatPrice = (value: number) =>
+const getOverviewHistoryStart = () => {
+  const start = new Date()
+  start.setDate(start.getDate() - OVERVIEW_HISTORY_DAYS)
+  return start.toISOString().slice(0, 10)
+}
+
+const toNumber = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  return null
+}
+
+const formatPrice = (value: number, currencyCode = 'USD') =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currencyCode || 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value)
 
-const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`
+const formatPriceValue = (value: number | null, currencyCode = 'USD') =>
+  value === null ? 'N/A' : formatPrice(value, currencyCode)
 
-const formatUpdateTime = (timestamp: number) => {
-  const normalized = timestamp > 1_000_000_000_000 ? timestamp : timestamp * 1000
-  const date = new Date(normalized)
+const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+
+const formatPercentValue = (value: number | null) => (value === null ? 'N/A' : formatPercent(value))
+
+const formatUpdateTime = (value: number | string | null | undefined) => {
+  if (value === undefined || value === null) {
+    return 'Unknown'
+  }
+
+  const date = typeof value === 'number' ? new Date(value > 1_000_000_000_000 ? value : value * 1000) : new Date(value)
 
   if (Number.isNaN(date.getTime())) {
     return 'Unknown'
@@ -68,18 +211,76 @@ const formatUpdateTime = (timestamp: number) => {
   })
 }
 
-const toHistoryPointLabel = (point: ETF['last'][number]['ts'][number], index: number) =>
-  point.label || point.minute || point.date || `Point ${index + 1}`
+const formatHistoryLabel = (value: string, index: number) => {
+  const date = new Date(value)
 
-const getMoverName = (quote: MoverEntry) => ('companyName' in quote ? quote.companyName : quote.symbol)
-
-const getCompanyHref = (symbol: string, cid: number, tid: number) => ({
-  pathname: `/company/${symbol}`,
-  query: {
-    cid: String(cid),
-    tid: String(tid)
+  if (Number.isNaN(date.getTime())) {
+    return `Point ${index + 1}`
   }
-})
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const getQuoteName = (quote: QuoteApiItem) => quote.displayName || quote.shortName || quote.longName || quote.symbol
+
+const getScreenerQuoteName = (quote: ScreenerApiQuote) => quote.shortName || quote.longName || quote.symbol
+
+const getExternalQuoteHref = (symbol: string) => `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`
+
+const buildHistory = (quotes: ChartApiQuote[]) =>
+  quotes.reduce<HistoryPoint[]>((history, point, index) => {
+    const price = toNumber(point.close)
+
+    if (price === null) {
+      return history
+    }
+
+    history.push({
+      label: formatHistoryLabel(point.date, index),
+      price
+    })
+
+    return history
+  }, [])
+
+const getChangeValue = (
+  quote: QuoteApiItem | ScreenerApiQuote,
+  latestPrice: number | null,
+  previousClose: number | null
+) => {
+  const change = toNumber(quote.regularMarketChange)
+
+  if (change !== null) {
+    return change
+  }
+
+  if (latestPrice !== null && previousClose !== null) {
+    return latestPrice - previousClose
+  }
+
+  return null
+}
+
+const getChangePercentValue = (
+  quote: QuoteApiItem | ScreenerApiQuote,
+  change: number | null,
+  previousClose: number | null
+) => {
+  const changePercent = toNumber(quote.regularMarketChangePercent)
+
+  if (changePercent !== null) {
+    return changePercent
+  }
+
+  if (change !== null && previousClose !== null && previousClose !== 0) {
+    return (change / previousClose) * 100
+  }
+
+  return null
+}
 
 const readApiError = async (response: Response, fallbackMessage: string) => {
   const contentType = response.headers.get('content-type') || ''
@@ -92,12 +293,30 @@ const readApiError = async (response: Response, fallbackMessage: string) => {
   return (await response.text()) || fallbackMessage
 }
 
+const fetchYf2 = async <T,>(request: Yf2RequestBody, signal: AbortSignal) => {
+  const response = await fetch('/api/yf2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(request),
+    signal
+  })
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response, `Failed to load ${request.operation} data`))
+  }
+
+  const payload = (await response.json()) as Yf2Response<T>
+  return payload.data
+}
+
 export const Content = ({ page }: ContentProps) => {
-  const [quoteData, setQuoteData] = useState<ETF | null>(null)
-  const [quoteStatus, setQuoteStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [quotes, setQuotes] = useState<OverviewQuote[]>([])
+  const [quoteStatus, setQuoteStatus] = useState<AsyncStatus>('loading')
   const [quoteError, setQuoteError] = useState<string | null>(null)
-  const [moversData, setMoversData] = useState<Movers | null>(null)
-  const [moversStatus, setMoversStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [moverSections, setMoverSections] = useState<MoverSection[]>([])
+  const [moversStatus, setMoversStatus] = useState<AsyncStatus>('loading')
   const [moversError, setMoversError] = useState<string | null>(null)
   const [requestKey, setRequestKey] = useState(0)
   const [activeSymbol, setActiveSymbol] = useState('')
@@ -108,6 +327,134 @@ export const Content = ({ page }: ContentProps) => {
     }
 
     const controller = new AbortController()
+    const period1 = getOverviewHistoryStart()
+
+    const loadOverview = async () => {
+      const [quoteResponse, chartResults] = await Promise.all([
+        fetchYf2<QuoteApiItem[]>(
+          {
+            operation: 'quote',
+            symbols: [...OVERVIEW_SYMBOLS],
+            options: {
+              fields: [
+                'symbol',
+                'currency',
+                'displayName',
+                'shortName',
+                'longName',
+                'quoteType',
+                'fullExchangeName',
+                'quoteSourceName',
+                'regularMarketPrice',
+                'regularMarketPreviousClose',
+                'regularMarketChange',
+                'regularMarketChangePercent',
+                'regularMarketTime',
+                'regularMarketVolume',
+                'marketCap'
+              ]
+            }
+          },
+          controller.signal
+        ),
+        Promise.allSettled(
+          OVERVIEW_SYMBOLS.map((symbol) =>
+            fetchYf2<ChartApiData>(
+              {
+                operation: 'chart',
+                symbol,
+                options: {
+                  period1,
+                  interval: '1d'
+                }
+              },
+              controller.signal
+            )
+          )
+        )
+      ])
+
+      const chartBySymbol = new Map<string, ChartApiData>()
+
+      chartResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          chartBySymbol.set(OVERVIEW_SYMBOLS[index], result.value)
+        }
+      })
+
+      return quoteResponse.map<OverviewQuote>((quote) => {
+        const latestPrice = toNumber(quote.regularMarketPrice)
+        const previousClose = toNumber(quote.regularMarketPreviousClose)
+        const change = getChangeValue(quote, latestPrice, previousClose)
+        const changePercent = getChangePercentValue(quote, change, previousClose)
+
+        return {
+          symbol: quote.symbol,
+          name: getQuoteName(quote),
+          currency: quote.currency || 'USD',
+          quoteType: quote.quoteType || 'Quote',
+          exchange: quote.fullExchangeName || 'Yahoo Finance',
+          latestPrice,
+          previousClose,
+          change,
+          changePercent,
+          latestUpdate: quote.regularMarketTime ?? null,
+          latestSource: quote.quoteSourceName || quote.fullExchangeName || 'Yahoo Finance',
+          marketCap: toNumber(quote.marketCap),
+          volume: toNumber(quote.regularMarketVolume),
+          history: buildHistory(chartBySymbol.get(quote.symbol)?.quotes ?? [])
+        }
+      })
+    }
+
+    const loadMovers = async () => {
+      const results = await Promise.allSettled(
+        MOVER_SECTION_CONFIG.map(async (section) => {
+          const data = await fetchYf2<ScreenerApiData>(
+            {
+              operation: 'screener',
+              query: section.screenerId,
+              options: {
+                count: MOVER_COUNT
+              }
+            },
+            controller.signal
+          )
+
+          return {
+            key: section.key,
+            title: section.title,
+            description: section.description,
+            items: data.quotes.slice(0, MOVER_COUNT).map<MoverQuote>((quote) => {
+              const latestPrice = toNumber(quote.regularMarketPrice)
+              const previousClose = toNumber(quote.regularMarketPreviousClose)
+              const change = getChangeValue(quote, latestPrice, previousClose)
+              const changePercent = getChangePercentValue(quote, change, previousClose)
+
+              return {
+                symbol: quote.symbol,
+                name: getScreenerQuoteName(quote),
+                currency: quote.currency || 'USD',
+                latestPrice,
+                changePercent,
+                volume: toNumber(quote.regularMarketVolume),
+                marketCap: toNumber(quote.marketCap),
+                href: getExternalQuoteHref(quote.symbol)
+              }
+            })
+          } satisfies MoverSection
+        })
+      )
+
+      const sections = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+
+      if (sections.length === 0) {
+        const firstError = results.find((result) => result.status === 'rejected')
+        throw firstError?.status === 'rejected' ? firstError.reason : new Error('Failed to load stock movers')
+      }
+
+      return sections
+    }
 
     const load = async () => {
       setQuoteStatus('loading')
@@ -115,49 +462,29 @@ export const Content = ({ page }: ContentProps) => {
       setMoversStatus('loading')
       setMoversError(null)
 
-      const loadQuotes = async () => {
-        const response = await fetch('/api/tikr', {
-          signal: controller.signal
-        })
-
-        if (!response.ok) {
-          throw new Error(await readApiError(response, 'Failed to load overview data'))
-        }
-
-        const nextData = (await response.json()) as ETF
-        setQuoteData(nextData)
-        setActiveSymbol((current) =>
-          nextData.last.some((quote) => quote.symbol === current) ? current : (nextData.last[0]?.symbol ?? '')
-        )
-        setQuoteStatus('ready')
-      }
-
-      const loadMovers = async () => {
-        const response = await fetch('/api/tikr-movers', {
-          signal: controller.signal
-        })
-
-        if (!response.ok) {
-          throw new Error(await readApiError(response, 'Failed to load stock movers'))
-        }
-
-        const nextData = (await response.json()) as Movers
-        setMoversData(nextData)
-        setMoversStatus('ready')
-      }
-
-      const [quoteResult, moversResult] = await Promise.allSettled([loadQuotes(), loadMovers()])
+      const [quoteResult, moversResult] = await Promise.allSettled([loadOverview(), loadMovers()])
 
       if (controller.signal.aborted) {
         return
       }
 
-      if (quoteResult.status === 'rejected') {
+      if (quoteResult.status === 'fulfilled') {
+        setQuotes(quoteResult.value)
+        setActiveSymbol((current) =>
+          quoteResult.value.some((quote) => quote.symbol === current) ? current : (quoteResult.value[0]?.symbol ?? '')
+        )
+        setQuoteStatus('ready')
+      } else {
+        setQuotes([])
         setQuoteStatus('error')
         setQuoteError(quoteResult.reason instanceof Error ? quoteResult.reason.message : 'Unknown error')
       }
 
-      if (moversResult.status === 'rejected') {
+      if (moversResult.status === 'fulfilled') {
+        setMoverSections(moversResult.value)
+        setMoversStatus('ready')
+      } else {
+        setMoverSections([])
         setMoversStatus('error')
         setMoversError(moversResult.reason instanceof Error ? moversResult.reason.message : 'Unknown error')
       }
@@ -168,45 +495,6 @@ export const Content = ({ page }: ContentProps) => {
     return () => controller.abort()
   }, [page, requestKey])
 
-  const quotes = useMemo<OverviewQuote[]>(
-    () =>
-      (quoteData?.last ?? []).map((quote) => ({
-        ...quote,
-        history: quote.ts.map((point, index) => ({
-          label: toHistoryPointLabel(point, index),
-          price: point.close
-        }))
-      })),
-    [quoteData]
-  )
-
-  const moverSections = useMemo(
-    () =>
-      moversData
-        ? [
-            {
-              key: 'active',
-              title: 'Most Active',
-              description: 'Highest-volume names in the session',
-              items: moversData.active
-            },
-            {
-              key: 'gainers',
-              title: 'Top Gainers',
-              description: 'Leaders by percentage move',
-              items: moversData.gainers
-            },
-            {
-              key: 'losers',
-              title: 'Top Losers',
-              description: 'Biggest laggards by percentage move',
-              items: moversData.losers
-            }
-          ]
-        : [],
-    [moversData]
-  )
-
   if (page === 'watchlist') {
     return (
       <div className='w-full max-w-4xl space-y-4'>
@@ -214,8 +502,8 @@ export const Content = ({ page }: ContentProps) => {
         <div className='rounded-2xl border border-border/50 bg-muted/20 p-6'>
           <PixelGrid animation='checkerboard' color='#AAAAAA' duration={1800} className='h-12 w-12' />
           <p className='mt-4 max-w-md text-sm leading-6 text-muted-foreground'>
-            The overview page is now using live Tikr data. Watchlist can be wired next once you decide whether it should
-            reuse these instruments or persist a user-specific set.
+            The overview page is now using live Yahoo Finance data. Watchlist can be wired next once you decide whether
+            it should reuse these market snapshots or persist a user-specific set.
           </p>
         </div>
       </div>
@@ -225,26 +513,18 @@ export const Content = ({ page }: ContentProps) => {
   const activeQuote = quotes.find((quote) => quote.symbol === activeSymbol) ?? quotes[0] ?? null
 
   return (
-    <div className='w-full max-w-7xl space-y-6'>
-      <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
-        <div className='space-y-1'>
-          <p className='text-sm font-mono text-muted-foreground'>
-            Live ETF snapshots from Tikr, rendered with evilcharts.
-          </p>
-          <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>
-            {quotes.length} instruments
-          </p>
-        </div>
+    <div className='relative w-full max-w-7xl space-y-8'>
+      <div className='absolute -right-24 top-5'>
         <button
           type='button'
-          onClick={() => setRequestKey((value) => value + 1)}
+          onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
           className='inline-flex h-9 items-center justify-center rounded-full border border-border/60 bg-background px-4 text-xs font-mono text-foreground transition-colors hover:bg-muted/40'>
           Refresh
         </button>
       </div>
 
       {quoteStatus === 'loading' && (
-        <div className='rounded-2xl border border-border/50 bg-background/70 p-4 sm:p-5'>
+        <div className='rounded-xl border border-border/50 bg-background/70 p-4 sm:p-5'>
           <div className='flex items-center justify-between gap-4'>
             <div className='space-y-2'>
               <div className='h-3 w-28 rounded-full bg-muted/60' />
@@ -269,42 +549,40 @@ export const Content = ({ page }: ContentProps) => {
       )}
 
       {quoteStatus === 'error' && (
-        <div className='rounded-2xl border border-destructive/30 bg-destructive/5 p-5'>
-          <p className='font-medium text-foreground'>Failed to load Tikr overview</p>
+        <div className='rounded-xl border border-destructive/30 bg-destructive/5 p-5'>
+          <p className='font-medium text-foreground'>Failed to load Yahoo Finance overview</p>
           <p className='mt-1 text-sm text-muted-foreground'>{quoteError}</p>
         </div>
       )}
 
       {quoteStatus === 'ready' && !activeQuote && (
-        <div className='rounded-2xl border border-border/50 bg-muted/20 p-5'>
-          <p className='font-medium text-foreground'>Tikr returned no instruments.</p>
-          <p className='mt-1 text-sm text-muted-foreground'>Check the configured ids or the upstream response shape.</p>
+        <div className='rounded-xl border border-border/50 bg-muted/20 p-5'>
+          <p className='font-medium text-foreground'>Yahoo Finance returned no instruments.</p>
+          <p className='mt-1 text-sm text-muted-foreground'>
+            Check the configured symbols or the upstream response shape.
+          </p>
         </div>
       )}
 
       {quoteStatus === 'ready' && activeQuote && (
         <>
-          <div className='grid grid-cols-1 xl:grid-cols-[minmax(0,1.8fr)_20rem] gap-3'>
-            <div className='rounded-lg bg-border/5 p-4 sm:p-5'>
-              <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+          <div className='grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_20rem]'>
+            <div className='rounded-lg bg-border/5 p-0'>
+              <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
                 <div className='space-y-1'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>
-                    Overview focus
-                  </p>
-                  <div className='flex items-end gap-2'>
-                    <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
-                      {activeQuote.symbol}
-                    </h2>
-                    <span className='pb-1 text-sm text-muted-foreground'>{activeQuote.companyName}</span>
+                  <div className='flex items-end gap-2 font-display'>
+                    <h2 className='text-3xl font-semibold tracking-tight text-foreground'>{activeQuote.symbol}</h2>
+                    <span className='pb-1 text-sm text-muted-foreground'>{activeQuote.name}</span>
                   </div>
                 </div>
 
                 <div className='text-left sm:text-right'>
-                  <p className='text-2xl font-mono font-semibold text-foreground ticker-font'>
-                    {formatPrice(activeQuote.latestPrice)}
+                  <p className='text-2xl font-display font-semibold text-foreground ticker-font'>
+                    {formatPriceValue(activeQuote.latestPrice, activeQuote.currency)}
                   </p>
-                  <p className={`text-sm font-mono ${activeQuote.change >= 0 ? 'text-foreground' : 'text-slate-500'}`}>
-                    {formatPercent(activeQuote.changePercent)}
+                  <p
+                    className={`text-sm font-display ${(activeQuote.changePercent ?? 0) >= 0 ? 'text-foreground' : 'text-slate-500'}`}>
+                    {formatPercentValue(activeQuote.changePercent)}
                   </p>
                 </div>
               </div>
@@ -312,7 +590,10 @@ export const Content = ({ page }: ContentProps) => {
               <div className='mt-4 h-72'>
                 <EvilAreaChart
                   data={activeQuote.history}
-                  chartConfig={getPriceChartConfig(`${activeQuote.symbol} close`, activeQuote.change >= 0)}
+                  chartConfig={getPriceChartConfig(
+                    `${activeQuote.symbol} close`,
+                    (activeQuote.changePercent ?? 0) >= 0
+                  )}
                   xDataKey='label'
                   yDataKey='price'
                   className='h-full w-full min-h-0'
@@ -336,27 +617,32 @@ export const Content = ({ page }: ContentProps) => {
                     tickMargin: 10
                   }}
                   yAxisProps={{
-                    tickFormatter: (value) => formatPrice(Number(value))
+                    tickFormatter: (value) => formatPrice(Number(value), activeQuote.currency)
                   }}
                 />
               </div>
             </div>
-            <div className='rounded-xl bg-border/5 p-4 sm:p-5'>
-              <div className='grid grid-cols-2 gap-3'>
+
+            <div className=''>
+              <div className='grid grid-cols-2 gap-2'>
                 <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Previous</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>{formatPrice(activeQuote.previousClose)}</p>
+                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Previous</p>
+                  <p className='mt-2 font-display font-medium text-foreground text-sm'>
+                    {formatPriceValue(activeQuote.previousClose, activeQuote.currency)}
+                  </p>
                 </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Change</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>{formatPrice(activeQuote.change)}</p>
+                <div className='rounded-xl bg-border/8 p-3'>
+                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Change</p>
+                  <p className='mt-2 font-display font-medium text-foreground text-sm'>
+                    {formatPriceValue(activeQuote.change, activeQuote.currency)}
+                  </p>
                 </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Source</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>{activeQuote.latestSource}</p>
+                <div className='rounded-xl  bg-border/8 p-3'>
+                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Source</p>
+                  <p className='mt-2 font-display font-medium text-foreground text-sm'>{activeQuote.latestSource}</p>
                 </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Updated</p>
+                <div className='rounded-xl bg-border/8 p-3'>
+                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Updated</p>
                   <p className='mt-2 text-sm font-medium text-foreground'>
                     {formatUpdateTime(activeQuote.latestUpdate)}
                   </p>
@@ -364,22 +650,24 @@ export const Content = ({ page }: ContentProps) => {
               </div>
 
               <div className='mt-4 space-y-2'>
-                <div className='flex items-center justify-between gap-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>ETFs</p>
-                  <Link
-                    href={getCompanyHref(activeQuote.symbol, activeQuote.cid, activeQuote.tid)}
-                    className='text-xs font-mono text-primary transition-colors hover:text-foreground'>
-                    Open company
-                  </Link>
+                <div className='flex items-center justify-between gap-3 font-display'>
+                  <p className='text-muted-foreground text-[10px] uppercase tracking-wide'>ETFs</p>
+                  <a
+                    href={getExternalQuoteHref(activeQuote.symbol)}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='text-primarytex t-xs transition-colors hover:text-foreground'>
+                    Yahoo Finance
+                  </a>
                 </div>
                 <div className='flex flex-wrap gap-2'>
                   {quotes.map((quote) => (
                     <button
-                      key={`${quote.cid}-${quote.tid}`}
+                      key={quote.symbol}
                       type='button'
                       aria-pressed={activeQuote.symbol === quote.symbol}
                       onClick={() => setActiveSymbol(quote.symbol)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-mono transition-colors ${
+                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
                         activeQuote.symbol === quote.symbol
                           ? 'border-y/30 bg-primary/e0 text-primary'
                           : 'border-border/50 bg-background/80 text-muted-foreground hover:text-foreground'
@@ -392,30 +680,31 @@ export const Content = ({ page }: ContentProps) => {
             </div>
           </div>
 
-          <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3'>
+          <div className='grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-4'>
             {quotes.map((quote) => {
-              const isPositive = quote.change >= 0
+              const isPositive = (quote.changePercent ?? 0) >= 0
 
               return (
                 <button
-                  key={`${quote.cid}-${quote.tid}`}
+                  key={quote.symbol}
                   type='button'
                   onClick={() => setActiveSymbol(quote.symbol)}
                   onMouseEnter={() => setActiveSymbol(quote.symbol)}
-                  className={`glass-panel-hover rounded-xl p-4 text-left transition-colors ${
-                    activeQuote.symbol === quote.symbol ? 'ring-1 ring-primary/25 bg-primary/4' : ''
+                  onFocus={() => setActiveSymbol(quote.symbol)}
+                  className={`glass-panel-hover rounded-xs p-4 text-left transition-colors ${
+                    activeQuote.symbol === quote.symbol ? 'ring-1 ring-primary/25 bg-primary/1.5' : ''
                   }`}>
                   <div className='flex items-start justify-between gap-3'>
                     <div className='min-w-0'>
-                      <p className='text-sm font-semibold text-foreground'>{quote.symbol}</p>
-                      <p className='truncate text-[11px] text-muted-foreground'>{quote.companyName}</p>
+                      <p className='font-display font-semibold text-foreground text-base'>{quote.symbol}</p>
+                      <p className='truncate text-[9px] text-muted-foreground'>{quote.name}</p>
                     </div>
                     <span className='rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground'>
-                      {quote.fc ? 'FC' : 'LIVE'}
+                      {quote.quoteType || 'Quote'}
                     </span>
                   </div>
 
-                  <div className='mt-4 h-24'>
+                  <div className='mt-4 h-24 w-fit'>
                     <EvilAreaChart
                       data={quote.history}
                       chartConfig={getPriceChartConfig(`${quote.symbol} close`, isPositive)}
@@ -441,11 +730,11 @@ export const Content = ({ page }: ContentProps) => {
                   </div>
 
                   <div className='mt-4 flex items-end justify-between gap-3'>
-                    <p className='text-lg font-mono font-semibold text-foreground ticker-font'>
-                      {formatPrice(quote.latestPrice)}
+                    <p className='font-display font-semibold text-foreground text-lg'>
+                      {formatPriceValue(quote.latestPrice, quote.currency)}
                     </p>
-                    <span className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                      {formatPercent(quote.changePercent)}
+                    <span className={`font-display text-sm ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
+                      {formatPercentValue(quote.changePercent)}
                     </span>
                   </div>
                 </button>
@@ -453,19 +742,15 @@ export const Content = ({ page }: ContentProps) => {
             })}
           </div>
 
-          <section className='space-y-3'>
-            <div className='space-y-1'>
-              <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>Overview it</p>
-              <div className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
-                <h2 className='font-display text-2xl font-semibold tracking-tight text-foreground'>Stock movers</h2>
-                <p className='text-sm text-muted-foreground'>
-                  Most active, gainers, and losers from Tikr&apos;s `overview_it` feed.
-                </p>
-              </div>
+          <section className='py-12 space-y-8'>
+            <div className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
+              <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
+                Stock <span className='px-3 font-thin opacity-50'>|</span> Movers
+              </h2>
             </div>
 
             {moversStatus === 'loading' && (
-              <div className='grid grid-cols-1 lg:grid-cols-3 gap-3'>
+              <div className='grid grid-cols-1 gap-3 lg:grid-cols-3'>
                 {Array.from({ length: 3 }, (_, index) => (
                   <div key={index} className='rounded-xl bg-border/5 p-4'>
                     <div className='space-y-2'>
@@ -489,43 +774,39 @@ export const Content = ({ page }: ContentProps) => {
               </div>
             )}
 
-            {moversStatus === 'ready' && moversData && (
-              <div className='grid grid-cols-1 lg:grid-cols-3 gap-3'>
+            {moversStatus === 'ready' && moverSections.length > 0 && (
+              <div className='grid grid-cols-1 lg:grid-cols-3 gap-16'>
                 {moverSections.map((section) => (
-                  <div key={section.key} className='rounded-xl bg-border/5 p-4'>
-                    <div className='flex items-start justify-between gap-3'>
-                      <div className='space-y-1'>
-                        <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>
-                          {section.key}
-                        </p>
-                        <h3 className='font-display text-xl font-semibold text-foreground'>{section.title}</h3>
-                        <p className='text-sm text-muted-foreground'>{section.description}</p>
+                  <div key={section.key} className='rounded-e-xl bg-border/5'>
+                    <div className='flex items-start'>
+                      <div className='space-y-0.5'>
+                        <h3 className='font-display text-lg font-semibold text-foreground'>{section.title}</h3>
+                        <p className='font-display text-muted-foreground text-sm'>{section.description}</p>
                       </div>
-                      <span className='rounded-full bg-background/80 px-2 py-1 text-[10px] font-mono text-muted-foreground'>
-                        {section.items.length}
-                      </span>
                     </div>
 
-                    <div className='mt-4 space-y-2'>
-                      {section.items.slice(0, 6).map((quote) => {
-                        const isPositive = quote.change >= 0
+                    <div className='mt-4 space-y-0'>
+                      {section.items.map((quote) => {
+                        const isPositive = (quote.changePercent ?? 0) >= 0
 
                         return (
                           <Link
-                            key={`${section.key}-${quote.cid}-${quote.tid}`}
-                            href={getCompanyHref(quote.symbol, quote.cid, quote.tid)}
-                            className='flex items-center justify-between gap-3 rounded-xl bg-background/80 px-3 py-3 transition-colors hover:bg-background'>
+                            key={`${section.key}-${quote.symbol}`}
+                            href={`/company/${quote.symbol}`}
+                            target='_blank'
+                            rel='noreferrer'
+                            className='flex items-center justify-between gap-3 font-display py-3'>
                             <div className='min-w-0'>
-                              <p className='text-sm font-semibold text-foreground'>{quote.symbol}</p>
-                              <p className='truncate text-[11px] text-muted-foreground'>{getMoverName(quote)}</p>
+                              <p className='font-bold text-sm text-foreground'>{quote.symbol}</p>
+                              <p className='truncate text-[11px] text-muted-foreground'>{quote.name}</p>
                             </div>
 
-                            <div className='text-right'>
-                              <p className='text-sm font-mono font-semibold text-foreground'>
-                                {formatPrice(quote.latestPrice)}
+                            <div className='font-display text-right'>
+                              <p className='text-sm font-medium text-foreground'>
+                                {formatPriceValue(quote.latestPrice, quote.currency)}
                               </p>
-                              <p className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                                {formatPercent(quote.changePercent)}
+                              <p className={`text-sm ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
+                                {formatPercentValue(quote.changePercent)}
                               </p>
                             </div>
                           </Link>

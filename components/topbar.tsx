@@ -1,12 +1,8 @@
 'use client'
-import { useTheme } from '@/components/theme-provider'
-import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { SubmitEvent, useState } from 'react'
-
-const PixelGrid = dynamic(() => import('three-px-react').then((mod) => mod.PixelGrid), {
-  ssr: false
-})
+import { PixelGrid } from 'three-px-react'
+import { useTheme } from './theme-provider'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Overview',

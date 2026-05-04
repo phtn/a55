@@ -70,12 +70,12 @@ export const FooterSection = () => {
   }, [])
 
   return (
-    <section ref={sectionRef} id='footer' className='relative pt-2 pl-6 md:pl-8 pr-6 md:pr-8 lg:ml-54'>
+    <section ref={sectionRef} id='footer' className='relative pt-2 pl-6 md:pl-8 lg:ml-54 max-w-7xl'>
       {/* Section header */}
       <Header title='Footer Section' tag='QUICK LINKS' id='+' ref={headerRef} />
 
       {/* Multi-column layout */}
-      <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-3 gap-8'>
+      <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-3 gap-8 pb-8'>
         {/* Payment Methods */}
         <div className='col-span-1'>
           <ColumnHeader title='API' />
@@ -98,13 +98,11 @@ export const FooterSection = () => {
       {/* Bottom copyright */}
       <div
         ref={footerRef}
-        className='mt-4 pt-8 border-t border-border/20 flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
-        <p className='font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-muted-foreground'>
+        className='mt-4 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+        <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>
           © 2026 c-layer. All rights reserved.
         </p>
-        <p className='font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-foreground/45'>
-          Designed to Scale Fast
-        </p>
+        <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>Scale Fast</p>
       </div>
     </section>
   )
@@ -112,7 +110,7 @@ export const FooterSection = () => {
 
 const ColumnHeader = ({ title }: { title: string }) => {
   return (
-    <h4 className='font-ios font-extrabold text-[9px] uppercase tracking-[0.25em] dark:text-border text-secondary-foreground mb-4'>
+    <h4 className='font-display font-extrabold text-[9px] uppercase tracking-[0.25em] dark:text-border text-foreground/70 mb-4'>
       {title}
     </h4>
   )
