@@ -6,7 +6,9 @@ import { usePageTitle } from '@/components/page-title-provider'
 import { Eyebrow } from '@/components/ui/eyebrow'
 import { Title } from '@/components/ui/title'
 import { Icon } from '@/lib/icons'
-import { startTransition, useEffect, useMemo, useState } from 'react'
+import gsap from 'gsap'
+import Link from 'next/link'
+import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
 const NEGATIVE_CHART_COLOR = 'var(--muted-foreground)'
@@ -167,10 +169,19 @@ interface CompanySummaryApi {
   earnings?: CompanyEarningsSummary
 }
 
+interface CompanyRecommendationsApi {
+  symbol: string
+  recommendedSymbols: {
+    symbol: string
+    score: number
+  }[]
+}
+
 interface CompanyPageData {
   quote: CompanyQuoteApi
   chart: CompanyChartApiData
   summary: CompanySummaryApi
+  recommendations: CompanyRecommendationsApi | null
 }
 
 interface GrokProfileApiData {
@@ -345,6 +356,7 @@ const fetchGrokProfile = async (query: string, signal: AbortSignal) => {
 }
 
 export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
+  const rootRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<CompanyPageData | null>(null)
   const [status, setStatus] = useState<AsyncStatus>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -352,7 +364,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const [grokStatus, setGrokStatus] = useState<OptionalAsyncStatus>('idle')
   const [grokError, setGrokError] = useState<string | null>(null)
   const [requestKey, setRequestKey] = useState(0)
-  const { setTitle } = usePageTitle()
+  const { setTitle, setWebsite } = usePageTitle()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -424,6 +436,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           },
           controller.signal
         )
+        const recommendationsPromise = fetchYf2<CompanyRecommendationsApi>(
+          {
+            operation: 'recommendationsBySymbol',
+            symbol
+          },
+          controller.signal
+        ).catch(() => null)
         const summaryPromise = fetchYf2<CompanySummaryApi>(
           {
             operation: 'quoteSummary',
@@ -442,7 +461,11 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           loadGrok(quoteCompanyName)
         }
 
-        const [chart, summary] = await Promise.all([chartPromise, summaryPromise])
+        const [chart, recommendations, summary] = await Promise.all([
+          chartPromise,
+          recommendationsPromise,
+          summaryPromise
+        ])
         const fallbackCompanyName = chart.meta.longName || chart.meta.shortName
 
         if (!quoteCompanyName && fallbackCompanyName) {
@@ -453,7 +476,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           return
         }
 
-        setData({ quote, chart, summary })
+        setData({ quote, chart, summary, recommendations })
         setStatus('ready')
       } catch (nextError) {
         if (controller.signal.aborted) {
@@ -484,12 +507,103 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const financialCurrencyCode = data?.summary.financialData?.financialCurrency || currencyCode
   const companyName =
     data?.quote.longName || data?.quote.shortName || data?.chart.meta.longName || data?.chart.meta.shortName || symbol
+  const companyWebsite = data?.summary.assetProfile?.website || null
 
   useEffect(() => {
     setTitle(companyName)
+    setWebsite(companyWebsite)
 
-    return () => setTitle(null)
-  }, [companyName, setTitle])
+    return () => {
+      setTitle(null)
+      setWebsite(null)
+    }
+  }, [companyName, companyWebsite, setTitle, setWebsite])
+
+  useLayoutEffect(() => {
+    if (status !== 'ready' || !data || !rootRef.current) {
+      return
+    }
+
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      const timeline = gsap.timeline({
+        defaults: {
+          ease: 'power3.out'
+        }
+      })
+
+      timeline
+        .from('[data-animate="page-header"]', {
+          x: -24,
+          opacity: 0,
+          duration: 0.8
+        })
+        .from(
+          '[data-animate="hero-card"]',
+          {
+            x: -28,
+            opacity: 0,
+            duration: 0.65
+          },
+          '-=0.2'
+        )
+        .from(
+          '[data-animate="stats-card"]',
+          {
+            x: -18,
+            opacity: 0,
+            duration: 0.4,
+            stagger: 0.05
+          },
+          '-=0.35'
+        )
+        .from(
+          '[data-animate="section-heading"]',
+          {
+            x: -18,
+            opacity: 0,
+            duration: 0.4,
+            stagger: 0.12
+          },
+          '-=0.2'
+        )
+        .from(
+          '[data-animate="metric-card"]',
+          {
+            x: -18,
+            opacity: 0,
+            duration: 0.4,
+            stagger: 0.04
+          },
+          '-=0.25'
+        )
+        .from(
+          '[data-animate="earnings-card"]',
+          {
+            x: -18,
+            opacity: 0,
+            duration: 0.38,
+            stagger: 0.04
+          },
+          '-=0.2'
+        )
+        .from(
+          '[data-animate="profile-block"]',
+          {
+            x: -22,
+            opacity: 0,
+            duration: 0.5,
+            stagger: 0.08
+          },
+          '-=0.15'
+        )
+    }, rootRef)
+
+    return () => ctx.revert()
+  }, [data, status, symbol])
 
   const latestPrice = toNumber(
     data?.quote.regularMarketPrice ?? data?.summary.financialData?.currentPrice ?? data?.chart.meta.regularMarketPrice
@@ -530,7 +644,6 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const grokipediaHref = grokProfile?.url || (grokQuery ? getGrokipediaHref(grokQuery) : null)
   const sector = data?.summary.assetProfile?.sector || 'N/A'
   const industry = data?.summary.assetProfile?.industry || 'N/A'
-  const website = data?.summary.assetProfile?.website
   const employeeCount = toNumber(data?.summary.assetProfile?.fullTimeEmployees)
   const analystTarget = toNumber(data?.summary.financialData?.targetMeanPrice)
   const analystRecommendation = data?.summary.financialData?.recommendationKey
@@ -538,6 +651,24 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const fiftyTwoWeekLow = toNumber(data?.summary.summaryDetail?.fiftyTwoWeekLow ?? data?.chart.meta.fiftyTwoWeekLow)
   const fiftyTwoWeekHigh = toNumber(data?.summary.summaryDetail?.fiftyTwoWeekHigh ?? data?.chart.meta.fiftyTwoWeekHigh)
   const pricingDate = data?.summary.defaultKeyStatistics?.mostRecentQuarter || latestUpdate
+  const relatedTickers = useMemo(
+    () =>
+      (data?.recommendations?.recommendedSymbols ?? [])
+        .map((recommendation) => ({
+          symbol: recommendation.symbol.trim().toUpperCase(),
+          score: recommendation.score
+        }))
+        .filter((recommendation, index, values) => {
+          if (!recommendation.symbol || recommendation.symbol === symbol.toUpperCase()) {
+            return false
+          }
+
+          return values.findIndex((value) => value.symbol === recommendation.symbol) === index
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 6),
+    [data, symbol]
+  )
 
   const history = useMemo<PriceHistoryPoint[]>(
     () =>
@@ -633,11 +764,17 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   )
 
   return (
-    <div className='max-w-7xl space-y-6'>
-      <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
+    <div ref={rootRef} className='max-w-7xl space-y-6'>
+      <div data-animate='page-header' className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
         <div className='space-y-1'>
           <div className='flex flex-wrap items-end gap-3 font-display'>
-            <h1 className='text-3xl font-semibold tracking-tight text-foreground'>{symbol}</h1>
+            <div>
+              <p className='flex items-center space-x-px font-display text-foreground text-[8px] italic uppercase tracking-widest'>
+                <Icon name='arrow-right' className='size-3' />
+                <span>{formatRecommendation(analystRecommendation)}</span>
+              </p>
+              <h1 className='text-3xl font-semibold tracking-tight text-foreground'>{symbol}</h1>
+            </div>
             <h2 className='pb-1 text-base text-foreground/80'>{companyName}</h2>
           </div>
           <Eyebrow>
@@ -645,12 +782,12 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           </Eyebrow>
         </div>
 
-        <div className='flex items-center gap-3'>
+        <div className='flex items-center w-1/3 gap-3'>
           <button
             type='button'
             onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
-            className='inline-flex h-9 items-center justify-center rounded-full border border-border bg-border px-4 text-xs font-mono text-foreground transition-colors hover:bg-muted/40'>
-            Refresh
+            className='inline-flex size-10 aspect-square items-center justify-center rounded-full border border-transparent hover:border-border hover:bg-border/50 hover:text-foreground text-foreground/40 text-xs font-mono transition-colors _hover:bg-muted/40'>
+            <Icon name={data ? 'refresh' : 'spinner-ring'} className='size-5 rotate-120' />
           </button>
         </div>
       </div>
@@ -686,13 +823,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
 
       {status === 'ready' && data && (
         <>
-          <div className='grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.9fr)_22rem]'>
+          <div data-animate='hero-card' className='grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.9fr)_22rem]'>
             <div className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-4 sm:p-5'>
               <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                 <div className='space-y-1'>
-                  <p className='font-display text-foreground/50 text-[8px] uppercase tracking-[0.24em]'>
+                  {/*<p className='font-display text-foreground text-[8px] uppercase tracking-[0.24em]'>
                     {formatRecommendation(analystRecommendation)}
-                  </p>
+                  </p>*/}
                   <div className='flex items-end gap-4'>
                     <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
                       {formatNullableCurrency(latestPrice, currencyCode)}
@@ -709,7 +846,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
 
                 <div className='text-left sm:text-right'>
                   <p className='text-foreground/70 text-[8px] uppercase tracking-[0.18em]'>Showing</p>
-                  <p className='mt-2 text-sm text-foreground'>
+                  <p className='mt-2 text-sm text-foreground/60'>
                     {chartData.length} of {history.length.toLocaleString()} price points
                   </p>
                 </div>
@@ -751,29 +888,38 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             <div className=''>
               <div className='grid grid-cols-2 gap-3'>
                 {stats.map((stat, index) => (
-                  <div key={index} className='rounded-xl font-display bg-border/6 p-3'>
+                  <div key={index} data-animate='stats-card' className='rounded-xl font-display bg-border/6 p-3'>
                     <p className='text-foreground/60 text-[8px] uppercase tracking-[0.18em]'>{stat.label}</p>
                     <p className='mt-2 font-medium text-foreground text-base'>{stat.value}</p>
                   </div>
                 ))}
               </div>
 
-              <div className='mt-4 rounded-xl bg-background/80 p-3'>
+              <div className='mt-2 rounded-xl bg-background/80 p-3'>
                 <Eyebrow>Business</Eyebrow>
                 <div className='mt-2 space-y-2 text-foreground text-sm'>
-                  <div className='flex items-center space-x-4'>
+                  <div className='font-display flex items-center space-x-4'>
                     <p className='font-medium'>{sector}</p>
                     <p className='text-foreground/70'>{industry}</p>
                   </div>
 
-                  {website && (
-                    <a
-                      href={website}
-                      target='_blank'
-                      rel='noreferrer'
-                      className='font-display text-primary text-xs hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
-                      {website}
-                    </a>
+                  {relatedTickers.length > 0 && (
+                    <div className=''>
+                      <div className='mt-0 flex flex-wrap gap-2'>
+                        {relatedTickers.map((ticker) => (
+                          <Link
+                            key={ticker.symbol}
+                            href={`/company/${ticker.symbol}`}
+                            className='inline-flex items-center gap-1 rounded-sm border border-border bg-border/20 hover:border-foreground/25 px-2.5 py-1 font-display text-[8px] uppercase text-foreground/78 transition-colors hover:bg-foreground/4 hover:text-foreground'>
+                            <span className='tracking-wider'>{ticker.symbol}</span>
+                            <span className='text-foreground/60'>
+                              {Math.round(ticker.score * 100)}
+                              <span className='text-[7px]'>%</span>
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -781,20 +927,20 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           </div>
 
           <div className='rounded-xl mt-10 space-y-6'>
-            <div className='space-y-1'>
-              <Title>The Fundamentals</Title>
+            <div data-animate='section-heading' className='space-y-1'>
+              <Title>Fundamentals</Title>
             </div>
 
             <div className='mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3'>
               {financialMetrics.map((item) => (
-                <div key={item.label} className='rounded-xl bg-border/5 p-3'>
+                <div key={item.label} data-animate='metric-card' className='rounded-xl bg-border/5 p-3'>
                   <Eyebrow>{item.label}</Eyebrow>
                   <p className='mt-2 font-display font-medium text-foreground text-base'>{item.value}</p>
                 </div>
               ))}
             </div>
 
-            <div className='pt-8 space-y-1'>
+            <div data-animate='section-heading' className='pt-8 space-y-1'>
               {/*<Eyebrow>Recent Earnings</Eyebrow>*/}
               <Title>Quarterly Results</Title>
             </div>
@@ -802,7 +948,10 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             <div className='mt-4 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4'>
               {recentEarnings.length > 0 ? (
                 recentEarnings.map((item) => (
-                  <div key={`${item.fiscalQuarter || item.date}`} className='rounded-xl bg-background/80 p-3'>
+                  <div
+                    key={`${item.fiscalQuarter || item.date}`}
+                    data-animate='earnings-card'
+                    className='rounded-xl bg-background/80 p-3'>
                     <p className='text-lg font-mono uppercase tracking-[0.18em] text-foreground/60'>
                       {item.fiscalQuarter || item.date}
                     </p>
@@ -829,14 +978,16 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                   </div>
                 ))
               ) : (
-                <div className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
+                <div
+                  data-animate='earnings-card'
+                  className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
                   No recent Yahoo earnings rows were returned for this symbol.
                 </div>
               )}
             </div>
 
             <div id='profile-info' className='rounded-xl my-20 space-y-6'>
-              <div className='flex items-start justify-between gap-4'>
+              <div data-animate='section-heading' className='flex items-start justify-between gap-4'>
                 <div className='space-y-0'>
                   {usingGrokProfile ? (
                     <Eyebrow>{'Grokipedia'}</Eyebrow>
@@ -859,7 +1010,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               </div>
 
               {grokStatus === 'loading' && (
-                <div className='rounded-xl bg-border/5 p-4'>
+                <div data-animate='profile-block' className='rounded-xl bg-border/5 p-4'>
                   <div className='space-y-2'>
                     <div className='h-3 w-40 rounded-full bg-muted/60' />
                     <div className='h-3 w-full rounded-full bg-muted/50' />
@@ -872,7 +1023,10 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               {profileParagraphs.length > 0 && (
                 <div className='space-y-4 text-base leading-7 text-foreground/85'>
                   {profileParagraphs.map((paragraph, index) => (
-                    <p key={`${index}-${paragraph.slice(0, 24)}`} className=' text-balance'>
+                    <p
+                      key={`${index}-${paragraph.slice(0, 24)}`}
+                      data-animate='profile-block'
+                      className=' text-balance'>
                       {paragraph}
                     </p>
                   ))}
@@ -880,19 +1034,23 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               )}
 
               {grokStatus === 'error' && !yahooProfile && (
-                <div className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
+                <div
+                  data-animate='profile-block'
+                  className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
                   {grokError || 'No Grokipedia profile was returned for this company.'}
                 </div>
               )}
 
               {grokStatus === 'idle' && !yahooProfile && (
-                <div className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
+                <div
+                  data-animate='profile-block'
+                  className='rounded-xl bg-background/80 p-3 text-sm text-muted-foreground'>
                   No company profile is available yet.
                 </div>
               )}
 
               {grokStatus === 'error' && yahooProfile && (
-                <p className='text-xs text-muted-foreground'>
+                <p data-animate='profile-block' className='text-xs text-muted-foreground'>
                   Showing the Yahoo Finance summary because Grokipedia was unavailable.
                 </p>
               )}
@@ -903,36 +1061,3 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
     </div>
   )
 }
-
-/*
-<div className='rounded-xl font-display bg-border/8 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Change</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>
-                    {formatNullableCurrency(priceChange, currencyCode)}
-                  </p>
-                </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Market Cap</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>
-                    {formatNullableCompactCurrency(marketCap, currencyCode)}
-                  </p>
-                </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>TEV</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>
-                    {formatNullableCompactCurrency(enterpriseValue, currencyCode)}
-                  </p>
-                </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Shares Out</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>
-                    {formatNullableCompactNumber(sharesOutstanding)}
-                  </p>
-                </div>
-                <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>
-                    Pricing Date
-                  </p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>{formatNullableDate(pricingDate)}</p>
-                </div>
-*/

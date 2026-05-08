@@ -19,10 +19,10 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className='h-16 flex items-center justify-center border-b-[0.5px] border-dotted border-border'>
         <div className='flex items-center justify-start space-x-4 px-6 h-16 w-full'>
-          <Icon name='re-up.ph' className='size-3.5' />
-          <h2 className='font-display font-medium text-foreground text-base whitespace-nowrap leading-0 tracking-tight'>
+          <Icon name='re-up.ph' className='size-4' />
+          {/*<h2 className='font-display font-medium text-foreground text-base whitespace-nowrap leading-0 tracking-tight'>
             Web Technologies
-          </h2>
+          </h2>*/}
         </div>
       </div>
 
@@ -46,7 +46,7 @@ export const Sidebar = () => {
                   // transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
-              <span className='hidden lg:block font-display font-medium text-sm'>{label}</span>
+              <span className='hidden lg:block font-display font-medium tracking-wider text-sm'>{label}</span>
             </Link>
           )
         })}

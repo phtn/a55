@@ -1,15 +1,17 @@
 'use client'
+import { Icon } from '@/lib/icons'
 import { usePathname, useRouter } from 'next/navigation'
 import { SubmitEvent, useState } from 'react'
 import { PixelGrid } from 'three-px-react'
 import { usePageTitle } from './page-title-provider'
+import { Typewrite } from './text/typewriter'
 import { useTheme } from './theme-provider'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Overview',
-  '/explore': 'Explore Stocks',
+  '/explore': 'Find Stocks',
   '/icons': 'Icons',
-  '/markets': 'Global Markets',
+  '/markets': 'Global',
   '/watchlist': 'Watchlist'
 }
 
@@ -34,13 +36,39 @@ const getPageTitle = (pathname: string) => {
   return segments.length > 0 ? formatSegment(segments[segments.length - 1]) : PAGE_TITLES['/']
 }
 
-export const TopBar = () => {
+const normalizeWebsiteUrl = (website: string) => {
+  if (/^https?:\/\//i.test(website)) {
+    return website
+  }
+
+  return `https://${website}`
+}
+
+const getWebsiteLabel = (website: string) => {
+  try {
+    return new URL(normalizeWebsiteUrl(website)).hostname.replace(/^www\./, '')
+  } catch {
+    return website
+      .replace(/^https?:\/\//i, '')
+      .replace(/^www\./, '')
+      .replace(/\/$/, '')
+  }
+}
+
+interface TopBarProps {
+  companyWebsite?: string | null
+}
+
+export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProps) => {
   const [query, setQuery] = useState('')
   const navigate = useRouter()
   const pathname = usePathname()
-  const { title } = usePageTitle()
+  const { title, website } = usePageTitle()
   const { resolvedTheme } = useTheme()
   const pageTitle = title ?? getPageTitle(pathname ?? '')
+  const companyWebsite = companyWebsiteProp ?? website
+  const companyWebsiteHref = companyWebsite ? normalizeWebsiteUrl(companyWebsite) : null
+  const companyWebsiteLabel = companyWebsite ? getWebsiteLabel(companyWebsite) : null
 
   const handleSearch = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -52,17 +80,47 @@ export const TopBar = () => {
 
   return (
     <header className='sticky top-0 z-50 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70'>
-      <div className='flex h-16 items-center border-b-[0.5px] border-border border-dotted gap-4 px-4 sm:gap-6 sm:px-8'>
-        <div className='flex min-w-0 flex-1 items-center gap-4 sm:gap-6'>
-          <div className='min-w-0 flex-1'>
-            <h1
+      <div className='flex items-center justify-between h-16 border-b-[0.5px] border-border border-dotted gap-4 px-4 sm:gap-6 sm:px-8'>
+        <div className='flex w-full items-center justify-between'>
+          <div className='min-w-0 h-5.5 flex-4 flex items-start space-x-1.5'>
+            <div className='flex items-center justify-center size-5 aspect-square bg-radial from-background'>
+              {true ? (
+                <Icon name='aapl' className='size-4.5 text-foreground/70' />
+              ) : (
+                <PixelGrid
+                  animation='snake'
+                  color={resolvedTheme === 'dark' ? '#f5f5f5' : '#CCC'}
+                  className='scale-82'
+                />
+              )}
+            </div>
+            <Typewrite
               id='company-name'
-              className='truncate font-display text-xl font-bold text-foreground sm:text-lg tracking-[0.02em]'>
-              {pageTitle}
-            </h1>
+              text={pageTitle}
+              showCursor={false}
+              speed={22}
+              className='truncate font-display text-[1.4rem] font-bold text-foreground/70 sm:text-[0.94rem] tracking-[0.02em]'></Typewrite>
           </div>
 
-          <form onSubmit={handleSearch} className='hidden w-full max-w-xs md:block lg:max-w-sm'>
+          <div className='min-w-1/10 flex items-center px-2'>
+            {companyWebsiteHref && companyWebsiteLabel && (
+              <a
+                id='company-website-link'
+                href={companyWebsiteHref}
+                target='_blank'
+                rel='noreferrer'
+                className='flex items-center font-display font-thin text-sm text-foreground/80 hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
+                <span>{companyWebsiteLabel}</span>
+                <Icon name='arrow-right' className='size-3 -mb-0.75 -rotate-23' />
+              </a>
+            )}
+          </div>
+          <div className='h-6 w-36 flex items-center justify-center space-x-4'>
+            <Icon name='two-way' className='size-5 text-foreground/70' />
+            <Icon name='folder' className='size-5 text-foreground/70' />
+            <Icon name='book-open' className='size-5 text-foreground/70' />
+          </div>
+          <form onSubmit={handleSearch} className='hidden w-full md:flex flex-1 pl-4'>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -70,10 +128,6 @@ export const TopBar = () => {
               className='h-8 w-full rounded-xs px-4 text-sm font-display text-foreground outline-none placeholder:text-foreground/40 focus:ring-1 focus:ring-ring'
             />
           </form>
-        </div>
-
-        <div className='hidden shrink-0 sm:block'>
-          <PixelGrid animation='snake' color={resolvedTheme === 'dark' ? '#f5f5f5' : '#CCC'} duration={1000} />
         </div>
       </div>
     </header>

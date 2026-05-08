@@ -1,9 +1,9 @@
 'use client'
 
+import { Stock, type StockCardData } from '@/components/cards/stock'
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
 import { Icon } from '@/lib/icons'
-import Link from 'next/link'
 import { startTransition, useEffect, useState } from 'react'
 import { PixelGrid } from 'three-px-react'
 
@@ -136,7 +136,6 @@ interface MoverQuote {
   changePercent: number | null
   volume: number | null
   marketCap: number | null
-  href: string
 }
 
 interface MoverSection {
@@ -189,6 +188,12 @@ const formatPrice = (value: number, currencyCode = 'USD') =>
 const formatPriceValue = (value: number | null, currencyCode = 'USD') =>
   value === null ? 'N/A' : formatPrice(value, currencyCode)
 
+const formatCompactNumber = (value: number) =>
+  new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: value >= 1_000_000_000 ? 2 : 1
+  }).format(value)
+
 const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
 
 const formatPercentValue = (value: number | null) => (value === null ? 'N/A' : formatPercent(value))
@@ -230,6 +235,8 @@ const getQuoteName = (quote: QuoteApiItem) => quote.displayName || quote.shortNa
 const getScreenerQuoteName = (quote: ScreenerApiQuote) => quote.shortName || quote.longName || quote.symbol
 
 const getExternalQuoteHref = (symbol: string) => `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`
+
+const formatMarketCapLabel = (value: number | null) => (value === null ? undefined : formatCompactNumber(value))
 
 const buildHistory = (quotes: ChartApiQuote[]) =>
   quotes.reduce<HistoryPoint[]>((history, point, index) => {
@@ -282,6 +289,24 @@ const getChangePercentValue = (
 
   return null
 }
+
+const toOverviewStockCard = (quote: OverviewQuote): StockCardData => ({
+  symbol: quote.symbol,
+  name: quote.name,
+  mcap: formatMarketCapLabel(quote.marketCap),
+  price: quote.latestPrice,
+  change: quote.changePercent,
+  sparkline: quote.history
+})
+
+const toMoverStockCard = (quote: MoverQuote): StockCardData => ({
+  symbol: quote.symbol,
+  name: quote.name,
+  mcap: formatMarketCapLabel(quote.marketCap),
+  price: quote.latestPrice,
+  change: quote.changePercent,
+  sparkline: EMPTY_HISTORY
+})
 
 const readApiError = async (response: Response, fallbackMessage: string) => {
   const contentType = response.headers.get('content-type') || ''
@@ -439,8 +464,7 @@ export const Content = ({ page }: ContentProps) => {
                 latestPrice,
                 changePercent,
                 volume: toNumber(quote.regularMarketVolume),
-                marketCap: toNumber(quote.marketCap),
-                href: getExternalQuoteHref(quote.symbol)
+                marketCap: toNumber(quote.marketCap)
               }
             })
           } satisfies MoverSection
@@ -687,59 +711,13 @@ export const Content = ({ page }: ContentProps) => {
               const isPositive = (quote.changePercent ?? 0) >= 0
 
               return (
-                <button
+                <Stock
                   key={quote.symbol}
-                  type='button'
-                  onClick={() => setActiveSymbol(quote.symbol)}
-                  onMouseEnter={() => setActiveSymbol(quote.symbol)}
-                  onFocus={() => setActiveSymbol(quote.symbol)}
-                  className={`glass-panel-hover rounded-xs p-4 text-left transition-colors ${
-                    activeQuote.symbol === quote.symbol ? 'ring-1 ring-primary/25 bg-primary/1.5' : ''
-                  }`}>
-                  <div className='flex items-start justify-between gap-3'>
-                    <div className='min-w-0'>
-                      <p className='font-display font-semibold text-foreground text-base'>{quote.symbol}</p>
-                      <p className='truncate text-[9px] text-muted-foreground'>{quote.name}</p>
-                    </div>
-                    <span className='rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground'>
-                      {quote.quoteType || 'Quote'}
-                    </span>
-                  </div>
-
-                  <div className='mt-4 h-24 w-fit'>
-                    <EvilAreaChart
-                      data={quote.history}
-                      chartConfig={getPriceChartConfig(`${quote.symbol} close`, isPositive)}
-                      xDataKey='label'
-                      yDataKey='price'
-                      className='h-full w-full min-h-0'
-                      chartProps={{
-                        margin: {
-                          top: 4,
-                          right: 4,
-                          bottom: 4,
-                          left: 4
-                        }
-                      }}
-                      curveType='bump'
-                      strokeVariant='solid'
-                      areaVariant='gradient'
-                      hideTooltip
-                      hideLegend
-                      hideCartesianGrid
-                      hideCursorLine
-                    />
-                  </div>
-
-                  <div className='mt-4 flex items-end justify-between gap-3'>
-                    <p className='font-display font-semibold text-foreground text-lg'>
-                      {formatPriceValue(quote.latestPrice, quote.currency)}
-                    </p>
-                    <span className={`font-display text-sm ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                      {formatPercentValue(quote.changePercent)}
-                    </span>
-                  </div>
-                </button>
+                  stock={toOverviewStockCard(quote)}
+                  activeStock={activeQuote}
+                  setActiveSymbol={setActiveSymbol}
+                  isPositive={isPositive}
+                />
               )
             })}
           </div>
@@ -791,27 +769,7 @@ export const Content = ({ page }: ContentProps) => {
                       {section.items.map((quote) => {
                         const isPositive = (quote.changePercent ?? 0) >= 0
 
-                        return (
-                          <Link
-                            key={`${section.key}-${quote.symbol}`}
-                            href={`/company/${quote.symbol}`}
-                            prefetch='auto'
-                            className='flex items-center justify-between gap-3 font-display py-3'>
-                            <div className='min-w-0'>
-                              <p className='font-bold text-sm text-foreground'>{quote.symbol}</p>
-                              <p className='truncate text-[11px] text-muted-foreground'>{quote.name}</p>
-                            </div>
-
-                            <div className='font-display text-right'>
-                              <p className='text-sm font-medium text-foreground'>
-                                {formatPriceValue(quote.latestPrice, quote.currency)}
-                              </p>
-                              <p className={`text-sm ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                                {formatPercentValue(quote.changePercent)}
-                              </p>
-                            </div>
-                          </Link>
-                        )
+                        return <Stock key={quote.symbol} stock={toMoverStockCard(quote)} isPositive={isPositive} />
                       })}
                     </div>
                   </div>

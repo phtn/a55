@@ -1,14 +1,15 @@
 'use client'
 
 import { type IconNameType, icons } from '@/lib/icons/icons'
-import type { IconData, IconProps } from '@/lib/icons/types'
+import { type LogoNameType, logos } from '@/lib/icons/logos'
+import type { IconProps } from '@/lib/icons/types'
 import { cn } from '@/lib/utils'
 import type { FC } from 'react'
 
-export type IconName = IconNameType
+export type IconName = IconNameType | LogoNameType
 
 export const Icon: FC<IconProps> = ({ name, className, size = 16, color = 'currentColor', solid = true, ...props }) => {
-  const icon = icons[name] as IconData
+  const icon = icons[name as IconNameType] ?? logos[name as LogoNameType]
 
   return (
     <div

@@ -4,15 +4,18 @@ import { createContext, useContext, useState, type Dispatch, type ReactNode, typ
 
 interface PageTitleContextValue {
   title: string | null
+  website: string | null
   setTitle: Dispatch<SetStateAction<string | null>>
+  setWebsite: Dispatch<SetStateAction<string | null>>
 }
 
 const PageTitleContext = createContext<PageTitleContextValue | null>(null)
 
 export const PageTitleProvider = ({ children }: { children: ReactNode }) => {
   const [title, setTitle] = useState<string | null>(null)
+  const [website, setWebsite] = useState<string | null>(null)
 
-  return <PageTitleContext.Provider value={{ title, setTitle }}>{children}</PageTitleContext.Provider>
+  return <PageTitleContext.Provider value={{ title, website, setTitle, setWebsite }}>{children}</PageTitleContext.Provider>
 }
 
 export const usePageTitle = () => {

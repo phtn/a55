@@ -1,6 +1,6 @@
+import { Stock } from '@/components/cards/stock'
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
-import { Icon } from '@/lib/icons'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -252,75 +252,13 @@ export const Explore = () => {
         {filtered.map((stock) => {
           const isPositive = stock.change >= 0
           return (
-            <div
+            <Stock
               key={stock.symbol}
-              // initial={{ opacity: 0, y: 15 }}
-              // animate={{ opacity: 1, y: 0 }}
-            >
-              <Link
-                href={`/company/${stock.symbol}`}
-                onMouseEnter={() => setActiveSymbol(stock.symbol)}
-                onFocus={() => setActiveSymbol(stock.symbol)}
-                className={`glass-panel-hover rounded-xl p-4 flex items-center gap-4 group transition-colors ${
-                  activeStock?.symbol === stock.symbol ? 'ring-1 ring-primary/25 bg-primary/4' : ''
-                }`}>
-                <div className='w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors'>
-                  <span className='text-xs font-mono font-bold text-foreground group-hover:text-primary transition-colors'>
-                    {stock.symbol.slice(0, 2)}
-                  </span>
-                </div>
-
-                <div className='flex-1 min-w-0'>
-                  <div className='flex items-center gap-2'>
-                    <p className='text-sm font-semibold text-foreground group-hover:text-primary transition-colors'>
-                      {stock.symbol}
-                    </p>
-                    <span className='text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono'>
-                      {stock.mcap}
-                    </span>
-                  </div>
-                  <p className='text-[11px] text-muted-foreground truncate'>{stock.name}</p>
-                </div>
-
-                <div className='w-16 h-8 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity'>
-                  <EvilAreaChart
-                    data={stock.sparkline}
-                    chartConfig={isPositive ? POSITIVE_SPARKLINE_CONFIG : NEGATIVE_SPARKLINE_CONFIG}
-                    className='h-full w-full min-h-0 aspect-auto!'
-                    chartProps={{
-                      margin: {
-                        top: 2,
-                        right: 2,
-                        bottom: 2,
-                        left: 2
-                      }
-                    }}
-                    curveType='bump'
-                    strokeVariant='solid'
-                    areaVariant='gradient'
-                    hideTooltip
-                    hideLegend
-                    hideCartesianGrid
-                    hideCursorLine
-                  />
-                </div>
-
-                <div className='text-right shrink-0'>
-                  <p className='text-sm font-mono font-semibold text-foreground ticker-font'>
-                    ${stock.price.toFixed(2)}
-                  </p>
-                  <div
-                    className={`flex items-center justify-end gap-0.5 text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                    {isPositive ? (
-                      <Icon name='arrow-right' className='w-3 h-3' />
-                    ) : (
-                      <Icon name='arrow-right' className='w-3 h-3' />
-                    )}
-                    {Math.abs(stock.change).toFixed(1)}%
-                  </div>
-                </div>
-              </Link>
-            </div>
+              stock={stock}
+              activeStock={activeStock}
+              setActiveSymbol={setActiveSymbol}
+              isPositive={isPositive}
+            />
           )
         })}
       </div>

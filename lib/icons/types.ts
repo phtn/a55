@@ -1,12 +1,13 @@
 import type { IconNameType } from '@/lib/icons/icons'
 import type { ClassName } from '@/types'
 import type { SVGProps } from 'react'
-export type IconList = Record<IconNameType, { viewBox: string; symbol: string }>
+import { LogoNameType } from './logos'
+export type IconList = Record<IconNameType | LogoNameType, { viewBox: string; symbol: string }>
 
-export type IconName = IconNameType
+export type IconName = IconNameType | LogoNameType
 
 export interface IconProps extends SVGProps<SVGSVGElement> {
-  name: IconNameType
+  name: IconNameType | LogoNameType
   className?: ClassName
   size?: number
   color?: string
