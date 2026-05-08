@@ -80,12 +80,12 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
 
   return (
     <header className='sticky top-0 z-50 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70'>
-      <div className='flex items-center justify-between h-16 border-b-[0.5px] border-border border-dotted gap-4 px-4 sm:gap-6 sm:px-8'>
+      <div className='flex items-center justify-between h-16 border-b-[0.5px] border-border border-dotted gap-4 px-4 md:px-4 sm:gap-6 sm:px-8'>
         <div className='flex w-full items-center justify-between'>
-          <div className='min-w-0 h-5.5 flex-4 flex items-start space-x-1.5'>
+          <div className='min-w-0 h-5.5 flex-4 flex items-start space-x-1 md:space-x-1.5'>
             <div className='flex items-center justify-center size-5 aspect-square bg-radial from-background'>
               {true ? (
-                <Icon name='aapl' className='size-4.5 text-foreground/70' />
+                <Icon name='aapl' className='size-4 md:size-4.5 text-foreground/70' />
               ) : (
                 <PixelGrid
                   animation='snake'
@@ -99,7 +99,7 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
               text={pageTitle}
               showCursor={false}
               speed={22}
-              className='truncate font-display text-[1.4rem] font-bold text-foreground/70 sm:text-[0.94rem] tracking-[0.02em]'></Typewrite>
+              className='truncate font-display text-[11px] md:text-[1.4rem] font-semibold text-foreground/70 sm:text-[0.94rem] tracking-[0.02em]'></Typewrite>
           </div>
 
           <div className='min-w-1/10 flex items-center px-2'>
@@ -115,17 +115,17 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
               </a>
             )}
           </div>
-          <div className='h-6 w-36 flex items-center justify-center space-x-4'>
-            <Icon name='two-way' className='size-5 text-foreground/70' />
-            <Icon name='folder' className='size-5 text-foreground/70' />
+          <div className='h-6 w-6 md:w-36 flex items-center justify-center space-x-4'>
+            <Icon name='two-way' className='size-5 hidden text-foreground/70' />
+            <Icon name='folder' className='size-5 hidden text-foreground/70' />
             <Icon name='book-open' className='size-5 text-foreground/70' />
           </div>
           <form onSubmit={handleSearch} className='hidden w-full md:flex flex-1 pl-4'>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder='Search'
-              className='h-8 w-full rounded-xs px-4 text-sm font-display text-foreground outline-none placeholder:text-foreground/40 focus:ring-1 focus:ring-ring'
+              placeholder='search'
+              className='h-8 w-full rounded-xs px-4 text-sm font-display text-foreground outline-none placeholder:text-foreground/60 placeholder:tracking-widest placeholder:font-thin focus:ring-1 focus:ring-ring'
             />
           </form>
         </div>

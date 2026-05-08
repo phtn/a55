@@ -3,8 +3,10 @@
 import { Stock, type StockCardData } from '@/components/cards/stock'
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
+import { useOverviewPrefetch } from '@/components/overview-prefetch-provider'
 import { Icon } from '@/lib/icons'
-import { startTransition, useEffect, useState } from 'react'
+import gsap from 'gsap'
+import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PixelGrid } from 'three-px-react'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
@@ -338,6 +340,9 @@ const fetchYf2 = async <T,>(request: Yf2RequestBody, signal: AbortSignal) => {
 }
 
 export const Content = ({ page }: ContentProps) => {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const quoteAnimatedRef = useRef(false)
+  const moversAnimatedRef = useRef(false)
   const [quotes, setQuotes] = useState<OverviewQuote[]>([])
   const [quoteStatus, setQuoteStatus] = useState<AsyncStatus>('loading')
   const [quoteError, setQuoteError] = useState<string | null>(null)
@@ -346,6 +351,149 @@ export const Content = ({ page }: ContentProps) => {
   const [moversError, setMoversError] = useState<string | null>(null)
   const [requestKey, setRequestKey] = useState(0)
   const [activeSymbol, setActiveSymbol] = useState('')
+  const { setIsOverviewLoaded } = useOverviewPrefetch()
+  const isOverviewPage = page === undefined
+
+  useEffect(() => {
+    setIsOverviewLoaded(isOverviewPage && quoteStatus === 'ready' && moversStatus === 'ready')
+  }, [isOverviewPage, moversStatus, quoteStatus, setIsOverviewLoaded])
+
+  useEffect(() => {
+    if (quoteStatus === 'loading') {
+      quoteAnimatedRef.current = false
+    }
+  }, [quoteStatus])
+
+  useEffect(() => {
+    if (moversStatus === 'loading') {
+      moversAnimatedRef.current = false
+    }
+  }, [moversStatus])
+
+  useLayoutEffect(() => {
+    if (!rootRef.current || !isOverviewPage || quoteStatus !== 'ready' || !activeSymbol || quoteAnimatedRef.current) {
+      return
+    }
+
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      const quotePanels = rootRef.current?.querySelectorAll('[data-overview-quote-panel]')
+      const etfActions = rootRef.current?.querySelectorAll('[data-overview-etf-actions]')
+      const stockCards = rootRef.current?.querySelectorAll('[data-overview-stock-grid] > *')
+
+      const timeline = gsap.timeline({
+        defaults: {
+          ease: 'power3.out'
+        }
+      })
+
+      if (quotePanels?.length) {
+        timeline.from(quotePanels, {
+          x: 28,
+          opacity: 0,
+          duration: 0.55,
+          stagger: 0.12
+        })
+      }
+
+      if (etfActions?.length) {
+        timeline.from(
+          etfActions,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.4,
+            stagger: 0.06
+          },
+          '-=0.28'
+        )
+      }
+
+      if (stockCards?.length) {
+        timeline.from(
+          stockCards,
+          {
+            y: 22,
+            opacity: 0,
+            duration: 0.45,
+            stagger: 0.045
+          },
+          '-=0.2'
+        )
+      }
+    }, rootRef)
+
+    quoteAnimatedRef.current = true
+    return () => ctx.revert()
+  }, [activeSymbol, isOverviewPage, quoteStatus])
+
+  useLayoutEffect(() => {
+    if (
+      !rootRef.current ||
+      !isOverviewPage ||
+      moversStatus !== 'ready' ||
+      moverSections.length === 0 ||
+      moversAnimatedRef.current
+    ) {
+      return
+    }
+
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      const moversHeader = rootRef.current?.querySelectorAll('[data-overview-movers-header]')
+      const moverColumns = rootRef.current?.querySelectorAll('[data-overview-mover-column]')
+      const moverCards = rootRef.current?.querySelectorAll('[data-overview-mover-column] .glass-panel-hover')
+
+      const timeline = gsap.timeline({
+        defaults: {
+          ease: 'power3.out'
+        }
+      })
+
+      if (moversHeader?.length) {
+        timeline.from(moversHeader, {
+          x: 18,
+          opacity: 0,
+          duration: 0.45
+        })
+      }
+
+      if (moverColumns?.length) {
+        timeline.from(
+          moverColumns,
+          {
+            y: 24,
+            opacity: 0,
+            duration: 0.5,
+            stagger: 0.1
+          },
+          '-=0.18'
+        )
+      }
+
+      if (moverCards?.length) {
+        timeline.from(
+          moverCards,
+          {
+            y: 14,
+            opacity: 0,
+            duration: 0.34,
+            stagger: 0.03
+          },
+          '-=0.28'
+        )
+      }
+    }, rootRef)
+
+    moversAnimatedRef.current = true
+    return () => ctx.revert()
+  }, [isOverviewPage, moverSections.length, moversStatus])
 
   useEffect(() => {
     if (page === 'watchlist') {
@@ -538,18 +686,20 @@ export const Content = ({ page }: ContentProps) => {
   const activeQuote = quotes.find((quote) => quote.symbol === activeSymbol) ?? quotes[0] ?? null
 
   return (
-    <div className='relative w-full max-w-7xl space-y-8'>
-      <div className='absolute -right-24 top-5'>
-        <button
-          type='button'
-          onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
-          className='inline-flex h-9 items-center justify-center rounded-full border border-border/60 bg-background px-4 text-xs font-mono text-foreground transition-colors hover:bg-muted/40'>
-          Refresh
-        </button>
+    <div ref={rootRef} className='relative w-full max-w-7xl space-y-8'>
+      <div className='hidden md:flex absolute right-1/3 -top-1'>
+        <div className='flex items-center p-3 w-16 mr-4 h-10'>
+          <button
+            type='button'
+            onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
+            className='inline-flex size-10 aspect-square items-center justify-center rounded-full border border-transparent hover:border-border hover:bg-border/50 hover:text-foreground text-foreground/40 text-xs font-mono transition-colors _hover:bg-muted/40'>
+            <Icon name={quoteStatus === 'loading' ? 'spinner-ring' : 'refresh'} className='size-5 rotate-120' />
+          </button>
+        </div>
       </div>
 
       {quoteStatus === 'loading' && (
-        <div className='rounded-xl border border-border/50 bg-background/70 p-4 sm:p-5'>
+        <div className='rounded-xl border border-border/50 bg-background/70 p-1 md:p-5'>
           <div className='flex items-center justify-between gap-4'>
             <div className='space-y-2'>
               <div className='h-3 w-28 rounded-full bg-muted/60' />
@@ -557,7 +707,7 @@ export const Content = ({ page }: ContentProps) => {
             </div>
             <PixelGrid animation='snake' color='#AAAAAA' duration={1200} />
           </div>
-          <div className='mt-4 h-72'>
+          <div className='mt-4 h-80'>
             <EvilAreaChart
               data={EMPTY_HISTORY}
               chartConfig={getPriceChartConfig('Loading', true)}
@@ -574,14 +724,14 @@ export const Content = ({ page }: ContentProps) => {
       )}
 
       {quoteStatus === 'error' && (
-        <div className='rounded-xl border border-destructive/30 bg-destructive/5 p-5'>
+        <div className='rounded-xl border border-destructive/30 bg-destructive/5 p-1 md:p-5'>
           <p className='font-medium text-foreground'>Failed to load Yahoo Finance overview</p>
           <p className='mt-1 text-sm text-muted-foreground'>{quoteError}</p>
         </div>
       )}
 
       {quoteStatus === 'ready' && !activeQuote && (
-        <div className='rounded-xl border border-border/50 bg-muted/20 p-5'>
+        <div className='rounded-xl border border-border/50 bg-muted/20 p-1 md:p-5'>
           <p className='font-medium text-foreground'>Yahoo Finance returned no instruments.</p>
           <p className='mt-1 text-sm text-muted-foreground'>
             Check the configured symbols or the upstream response shape.
@@ -590,13 +740,15 @@ export const Content = ({ page }: ContentProps) => {
       )}
 
       {quoteStatus === 'ready' && activeQuote && (
-        <>
+        <div className=''>
           <div className='grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_20rem]'>
-            <div className='rounded-lg bg-border/5 p-0'>
-              <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
+            <div data-overview-quote-panel className='rounded-lg bg-border/2 p-0'>
+              <div className='flex gap-4 flex-row items-start justify-between'>
                 <div className='space-y-1'>
-                  <div className='flex items-end gap-2 font-display'>
-                    <h2 className='text-3xl font-semibold tracking-tight text-foreground'>{activeQuote.symbol}</h2>
+                  <div className='md:flex items-end gap-2 font-display'>
+                    <h2 className='text-2xl md:text-3xl font-semibold tracking-tight text-foreground'>
+                      {activeQuote.symbol}
+                    </h2>
                     <span className='pb-1 text-sm text-muted-foreground'>{activeQuote.name}</span>
                   </div>
                 </div>
@@ -606,13 +758,13 @@ export const Content = ({ page }: ContentProps) => {
                     {formatPriceValue(activeQuote.latestPrice, activeQuote.currency)}
                   </p>
                   <p
-                    className={`text-sm font-display ${(activeQuote.changePercent ?? 0) >= 0 ? 'text-foreground' : 'text-slate-500'}`}>
+                    className={`text-sm font-display md:text-left text-right ${(activeQuote.changePercent ?? 0) >= 0 ? 'text-foreground' : 'text-slate-500'}`}>
                     {formatPercentValue(activeQuote.changePercent)}
                   </p>
                 </div>
               </div>
 
-              <div className='mt-4 h-72'>
+              <div className='mt-4 h-80'>
                 <EvilAreaChart
                   data={activeQuote.history}
                   chartConfig={getPriceChartConfig(
@@ -648,7 +800,7 @@ export const Content = ({ page }: ContentProps) => {
               </div>
             </div>
 
-            <div className=''>
+            <div data-overview-quote-panel className=''>
               <div className='grid grid-cols-2 gap-2'>
                 <div className='rounded-xl bg-background/80 p-3'>
                   <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Previous</p>
@@ -674,7 +826,7 @@ export const Content = ({ page }: ContentProps) => {
                 </div>
               </div>
 
-              <div className='mt-4 space-y-2'>
+              <div data-overview-etf-actions className='mt-4 space-y-2'>
                 <div className='flex items-center justify-between gap-3 font-display'>
                   <p className='text-muted-foreground text-[10px] uppercase tracking-wide'>ETFs</p>
                   <a
@@ -706,24 +858,28 @@ export const Content = ({ page }: ContentProps) => {
             </div>
           </div>
 
-          <div className='grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-4'>
-            {quotes.map((quote) => {
-              const isPositive = (quote.changePercent ?? 0) >= 0
+          <section className='py-12'>
+            <div data-overview-stock-grid className='grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-4'>
+              {quotes.map((quote) => {
+                const isPositive = (quote.changePercent ?? 0) >= 0
 
-              return (
-                <Stock
-                  key={quote.symbol}
-                  stock={toOverviewStockCard(quote)}
-                  activeStock={activeQuote}
-                  setActiveSymbol={setActiveSymbol}
-                  isPositive={isPositive}
-                />
-              )
-            })}
-          </div>
+                return (
+                  <Stock
+                    key={quote.symbol}
+                    stock={toOverviewStockCard(quote)}
+                    activeStock={activeQuote}
+                    setActiveSymbol={setActiveSymbol}
+                    isPositive={isPositive}
+                  />
+                )
+              })}
+            </div>
+          </section>
 
           <section className='py-12 space-y-8'>
-            <div className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
+            <div
+              data-overview-movers-header
+              className='flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between'>
               <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
                 Stock <span className='px-3 font-thin opacity-50'>|</span> Movers
               </h2>
@@ -757,7 +913,7 @@ export const Content = ({ page }: ContentProps) => {
             {moversStatus === 'ready' && moverSections.length > 0 && (
               <div className='grid grid-cols-1 lg:grid-cols-3 gap-16'>
                 {moverSections.map((section) => (
-                  <div key={section.key} className='rounded-e-xl bg-border/5'>
+                  <div key={section.key} data-overview-mover-column className='rounded-e-xl bg-border/5'>
                     <div className='flex items-start'>
                       <div className='space-y-0.5'>
                         <h3 className='font-display text-lg font-semibold text-foreground'>{section.title}</h3>
@@ -777,7 +933,7 @@ export const Content = ({ page }: ContentProps) => {
               </div>
             )}
           </section>
-        </>
+        </div>
       )}
     </div>
   )

@@ -16,6 +16,7 @@ import type { ChartOptions } from 'yahoo-finance2/modules/chart'
 import type { FundamentalsTimeSeriesOptions } from 'yahoo-finance2/modules/fundamentalsTimeSeries'
 import type { HistoricalOptions } from 'yahoo-finance2/modules/historical'
 import type { InsightsOptions } from 'yahoo-finance2/modules/insights'
+import type { ModuleOptionsWithValidateFalse, ModuleOptionsWithValidateTrue } from 'yahoo-finance2/lib/moduleCommon'
 import type { OptionsOptions } from 'yahoo-finance2/modules/options'
 import type { QuoteOptions } from 'yahoo-finance2/modules/quote'
 import type { QuoteSummaryOptions } from 'yahoo-finance2/modules/quoteSummary'
@@ -57,6 +58,7 @@ export const YF2_OPERATIONS = [
 ] as const
 
 export type Yf2Operation = (typeof YF2_OPERATIONS)[number]
+export type Yf2ModuleOptions = ModuleOptionsWithValidateTrue | ModuleOptionsWithValidateFalse
 
 export interface Yf2Request {
   operation: Yf2Operation
@@ -64,6 +66,7 @@ export interface Yf2Request {
   symbols?: string[]
   query?: string
   options?: Record<string, unknown>
+  moduleOptions?: Yf2ModuleOptions
 }
 
 export class Yf2InputError extends Error {
@@ -118,9 +121,12 @@ const requireOptionField = <T extends object, K extends keyof T>(value: T, field
   return fieldValue
 }
 
-export const getQuote = async (ticker: string, options?: QuoteOptions) => {
+export const getQuote = async (ticker: string, options?: QuoteOptions, moduleOptions?: Yf2ModuleOptions) => {
   const symbol = requireSymbol(ticker)
-  const quoteData = await yahooFinance.quote(symbol, options)
+  const quoteData =
+    moduleOptions?.validateResult === false
+      ? await yahooFinance.quote(symbol, options, { validateResult: false })
+      : await yahooFinance.quote(symbol, options)
 
   if (!quoteData) {
     throw new Yf2NotFoundError(`No quote found for \`${symbol}\`.`)
@@ -133,13 +139,16 @@ export const executeYf2Request = async (request: Yf2Request) => {
   switch (request.operation) {
     case 'quote': {
       const quoteOptions = request.options as QuoteOptions | undefined
+      const moduleOptions = request.moduleOptions
       const symbols = normalizeSymbols(request.symbols ?? [])
 
       if (symbols.length > 0) {
-        return yahooFinance.quote(symbols, quoteOptions)
+        return moduleOptions?.validateResult === false
+          ? yahooFinance.quote(symbols, quoteOptions, { validateResult: false })
+          : yahooFinance.quote(symbols, quoteOptions)
       }
 
-      return getQuote(requireSymbol(request.symbol), quoteOptions)
+      return getQuote(requireSymbol(request.symbol), quoteOptions, moduleOptions)
     }
 
     case 'search':

@@ -1,8 +1,11 @@
 'use client'
+import { preloadExploreData } from '@/lib/explore-data'
 import { Icon, IconName } from '@/lib/icons'
+import { preloadMarketsData } from '@/lib/markets-data'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState, ViewTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { useOverviewPrefetch } from './overview-prefetch-provider'
 
 interface MenuItem {
   icon: IconName
@@ -12,13 +15,12 @@ interface MenuItem {
 }
 
 const navItems: MenuItem[] = [
-  { icon: 're-up.ph', label: 'Overview', path: '/', color: 'hsl(187,90%,51%)' },
+  { icon: 'arrow-right', label: 'Overview', path: '/', color: 'hsl(187,90%,51%)' },
   { icon: 'arrow-right', label: 'Explore', path: '/explore', color: 'hsl(280,65%,60%)' },
-  { icon: 'cf-pen', label: 'Watchlist', path: '/watchlist', color: 'hsl(38,92%,55%)' },
-  { icon: 'information', label: 'Markets', path: '/markets', color: 'hsl(160,70%,45%)' }
+  { icon: 'arrow-right', label: 'Watchlist', path: '/watchlist', color: 'hsl(38,92%,55%)' },
+  { icon: 'arrow-right', label: 'Markets', path: '/markets', color: 'hsl(160,70%,45%)' }
 ]
 
-// Clean upward column — stacked above the FAB, never off-screen
 const positions = [
   { x: 0, y: -80 },
   { x: 0, y: -160 },
@@ -29,105 +31,93 @@ const positions = [
 export const Fab = () => {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { isOverviewLoaded } = useOverviewPrefetch()
+  const hasPrefetchedRef = useRef(false)
+
+  useEffect(() => {
+    if (pathname !== '/' || !isOverviewLoaded || hasPrefetchedRef.current) {
+      return
+    }
+
+    navItems.forEach(({ path }) => {
+      if (path !== pathname) {
+        router.prefetch(path)
+
+        if (path === '/explore') {
+          preloadExploreData()
+        }
+
+        if (path === '/markets') {
+          preloadMarketsData()
+        }
+      }
+    })
+
+    hasPrefetchedRef.current = true
+  }, [isOverviewLoaded, pathname, router])
 
   return (
     <>
-      {/* Backdrop */}
-      <ViewTransition>
-        {open && (
+      <div
+        aria-hidden='true'
+        className={`fixed inset-0 z-40 bg-background/60 backdrop-blur-md transition-opacity duration-250 ${
+          open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={() => setOpen(false)}
+      />
+
+      {navItems.map((item, index) => {
+        const isActive = pathname === item.path
+        const pos = positions[index]
+        const delay = open ? index * 45 : (navItems.length - 1 - index) * 30
+
+        return (
           <div
-            // initial={{ opacity: 0 }}
-            // animate={{ opacity: 1 }}
-            // exit={{ opacity: 0 }}
-            className='fixed inset-0 z-40 bg-background/60 backdrop-blur-md'
-            onClick={() => setOpen(false)}
-          />
-        )}
-      </ViewTransition>
-
-      {/* Orbital nav items */}
-      <ViewTransition>
-        {open &&
-          navItems.map((item, i) => {
-            const isActive = pathname === item.path
-            const pos = positions[i]
-            return (
-              <div
-                key={item.path}
-                className='fixed bottom-8 right-8 z-50'
-                style={{ x: pos.x, y: pos.y }}
-                // initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-                // animate={{ x: pos.x, y: pos.y, scale: 1, opacity: 1 }}
-                // exit={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-                // transition={{ type: 'spring', stiffness: 380, damping: 26, delay: i * 0.05 }}
-              >
-                <Link href={item.path} onClick={() => setOpen(false)} className='flex items-center gap-3 group'>
-                  {/* Label to the left */}
-                  <span
-                    className='text-[11px] font-mono tracking-wider uppercase px-2.5 py-1 rounded-lg'
-                    style={{
-                      color: isActive ? item.color : 'hsl(215,14%,65%)',
-                      background: isActive ? `${item.color}18` : 'hsla(220,18%,10%,0.7)',
-                      backdropFilter: 'blur(8px)'
-                    }}>
-                    {item.label}
-                  </span>
-                  {/* Icon button */}
-                  <div
-                    // whileTap={{ scale: 0.88 }}
-                    className='w-12 h-12 rounded-2xl flex items-center justify-center'
-                    style={{
-                      background: isActive ? item.color : 'hsla(220,18%,10%,0.95)',
-                      boxShadow: `0 0 0 1px ${item.color}35, 0 4px 16px ${item.color}20`,
-                      backdropFilter: 'blur(16px)'
-                    }}>
-                    <Icon
-                      name={item.icon}
-                      className='size-4'
-                      style={{ color: isActive ? 'hsl(220,20%,4%)' : item.color }}
-                    />
-                  </div>
-                </Link>
+            key={item.path}
+            className={`fixed bottom-8 right-8 z-50 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+            style={{
+              transform: open
+                ? `translate3d(${pos.x}px, ${pos.y}px, 0) scale(1)`
+                : 'translate3d(0px, 0px, 0) scale(0.92)',
+              transitionDelay: `${delay}ms`
+            }}>
+            <Link
+              href={item.path}
+              prefetch='auto'
+              onClick={() => setOpen(false)}
+              className='flex items-center gap-3 group'>
+              <span
+                className='rounded-lg px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider'
+                style={{
+                  color: isActive ? 'text-foreground' : 'text-slate-500',
+                  backdropFilter: 'blur(8px)'
+                }}>
+                {item.label}
+              </span>
+              <div className='flex h-12 w-12 items-center justify-center rounded-2xl'>
+                <Icon
+                  name={item.icon}
+                  className='size-4'
+                  style={{ color: isActive ? 'text-foreground' : 'text-slate-500' }}
+                />
               </div>
-            )
-          })}
-      </ViewTransition>
+            </Link>
+          </div>
+        )
+      })}
 
-      {/* Trigger button */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className='fixed bottom-8 right-8 z-50 w-14 h-14 rounded-2xl flex items-center justify-center'
-        style={{
-          background: open
-            ? 'hsla(220,18%,10%,0.98)'
-            : 'linear-gradient(135deg, hsl(187,90%,51%) 0%, hsl(220,90%,60%) 100%)',
-          boxShadow: open
-            ? '0 0 0 1px hsla(210,20%,92%,0.08), 0 8px 32px hsla(220,20%,4%,0.6)'
-            : '0 0 0 1px hsla(187,90%,51%,0.3), 0 8px 32px hsla(187,90%,51%,0.25)'
-        }}
-        // whileTap={{ scale: 0.9 }}
-        // whileHover={{ scale: 1.05 }}
-      >
-        <ViewTransition>
-          {open ? (
-            <div
-              key='x'
-              // initial={{ rotate: -90, opacity: 0 }}
-              // animate={{ rotate: 0, opacity: 1 }}
-              // exit={{ rotate: 90, opacity: 0 }}
-              // transition={{ duration: 0.2 }}
-            >
-              <span className='w-5 h-5 text-foreground' />
-            </div>
-          ) : (
-            <div
-              key='menu'
-              // initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}
-            >
-              <Icon name='re-up.ph' className='w-5 h-5' />
-            </div>
-          )}
-        </ViewTransition>
+        aria-expanded={open}
+        aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
+        className='fixed bottom-8 right-8 z-60 flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 active:scale-95 bg-foreground/4 backdrop-blur-3xl'>
+        <Icon
+          name='menu'
+          className={`size-5 transition-transform duration-250 ${open ? 'rotate-180 text-foreground' : 'text-foreground'}`}
+        />
       </button>
     </>
   )

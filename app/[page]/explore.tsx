@@ -1,12 +1,19 @@
+'use client'
+
 import { Stock } from '@/components/cards/stock'
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
+import { Eyebrow } from '@/components/ui/eyebrow'
+import { type ExploreStock, getCachedExploreData, loadExploreData } from '@/lib/explore-data'
+import gsap from 'gsap'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-const HISTORY_LABELS = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May']
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
 const NEGATIVE_CHART_COLOR = 'var(--muted-foreground)'
+const STOCKS_PER_SECTOR = 12
+
+type AsyncStatus = 'loading' | 'ready' | 'error'
 
 const getPriceChartConfig = (label: string, positive: boolean) =>
   ({
@@ -19,152 +26,327 @@ const getPriceChartConfig = (label: string, positive: boolean) =>
     }
   }) satisfies ChartConfig
 
-const POSITIVE_SPARKLINE_CONFIG = getPriceChartConfig('Price', true)
-const NEGATIVE_SPARKLINE_CONFIG = getPriceChartConfig('Price', false)
+const formatPrice = (value: number, currencyCode = 'USD') =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currencyCode || 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value)
 
-const BASE_STOCKS = [
-  { symbol: 'AAPL', name: 'Apple Inc', price: 227.8, change: 1.5, sector: 'Technology', mcap: '$3.5T' },
-  { symbol: 'MSFT', name: 'Microsoft Corp', price: 428.5, change: 0.9, sector: 'Technology', mcap: '$3.2T' },
-  { symbol: 'NVDA', name: 'NVIDIA Corp', price: 892.5, change: 4.2, sector: 'Technology', mcap: '$2.2T' },
-  { symbol: 'GOOGL', name: 'Alphabet Inc', price: 176.3, change: -0.4, sector: 'Technology', mcap: '$2.1T' },
-  { symbol: 'AMZN', name: 'Amazon.com Inc', price: 186.4, change: -1.1, sector: 'Consumer', mcap: '$1.9T' },
-  { symbol: 'META', name: 'Meta Platforms', price: 512.3, change: 3.1, sector: 'Technology', mcap: '$1.3T' },
-  { symbol: 'TSLA', name: 'Tesla Inc', price: 178.6, change: -2.8, sector: 'Consumer', mcap: '$568B' },
-  { symbol: 'JPM', name: 'JPMorgan Chase', price: 198.2, change: 0.6, sector: 'Financials', mcap: '$572B' },
-  { symbol: 'V', name: 'Visa Inc', price: 281.4, change: 0.3, sector: 'Financials', mcap: '$578B' },
-  { symbol: 'JNJ', name: 'Johnson & Johnson', price: 156.7, change: -0.2, sector: 'Healthcare', mcap: '$376B' },
-  { symbol: 'UNH', name: 'UnitedHealth Group', price: 527.1, change: 1.1, sector: 'Healthcare', mcap: '$487B' },
-  { symbol: 'XOM', name: 'Exxon Mobil', price: 114.8, change: 1.8, sector: 'Energy', mcap: '$458B' }
-]
+const formatPriceValue = (value: number | null, currencyCode = 'USD') =>
+  value === null ? 'N/A' : formatPrice(value, currencyCode)
 
-const createSeededRandom = (seed: number) => {
-  let value = seed
+const formatPercentValue = (value: number | null) =>
+  value === null ? 'N/A' : `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
 
-  return () => {
-    value += 0x6d2b79f5
-    let t = value
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+const limitStocksPerSector = (stocks: ExploreStock[], sectorFilter: string) => {
+  const grouped = stocks.reduce<Map<string, ExploreStock[]>>((map, stock) => {
+    const sector = stock.sector || 'Other'
+    const existing = map.get(sector)
 
-const hashString = (value: string) =>
-  Array.from(value).reduce((hash, char) => Math.imul(hash ^ char.charCodeAt(0), 16777619), 2166136261)
-
-const genSparkline = (symbol: string, positive: boolean) => {
-  const random = createSeededRandom(hashString(symbol))
-  let v = 42 + random() * 16
-
-  return Array.from({ length: 15 }, () => {
-    const drift = positive ? 0.55 : -0.55
-    v = Math.max(8, Math.min(92, v + drift + (random() - 0.5) * 7))
-    return { price: Number(v.toFixed(2)) }
-  })
-}
-
-const genPriceHistory = (symbol: string, currentPrice: number, positive: boolean) => {
-  const random = createSeededRandom(hashString(`${symbol}-history`))
-  let rawPrice = 88 + random() * 18
-
-  const history = HISTORY_LABELS.map((month, index) => {
-    const drift = positive ? 1.2 : -1.2
-    const seasonal = Math.sin(index / 1.8 + random() * 1.5) * 2.4
-    rawPrice = Math.max(24, rawPrice + drift + seasonal + (random() - 0.5) * 6)
-
-    return {
-      month,
-      rawPrice
+    if (existing) {
+      existing.push(stock)
+    } else {
+      map.set(sector, [stock])
     }
-  })
 
-  const scale = currentPrice / history[history.length - 1].rawPrice
+    return map
+  }, new Map())
 
-  return history.map(({ month, rawPrice }) => ({
-    month,
-    price: Number((rawPrice * scale).toFixed(2))
-  }))
+  if (sectorFilter !== 'All') {
+    return (grouped.get(sectorFilter) ?? []).slice(0, STOCKS_PER_SECTOR)
+  }
+
+  return Array.from(grouped.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([, sectorStocks]) => sectorStocks.slice(0, STOCKS_PER_SECTOR))
 }
-
-const STOCKS = BASE_STOCKS.map((stock) => ({
-  ...stock,
-  sparkline: genSparkline(stock.symbol, stock.change >= 0),
-  history: genPriceHistory(stock.symbol, stock.price, stock.change >= 0)
-}))
 
 export const Explore = () => {
-  const [query] = useState('')
-  const [sectorFilter, setSectorFilter] = useState('All')
-  const [activeSymbol, setActiveSymbol] = useState(STOCKS[0]?.symbol ?? '')
+  const rootRef = useRef<HTMLDivElement>(null)
+  const hasAnimatedRef = useRef(false)
+  const [stocks, setStocks] = useState<ExploreStock[]>(() => getCachedExploreData() ?? [])
+  const [status, setStatus] = useState<AsyncStatus>(() => (getCachedExploreData() ? 'ready' : 'loading'))
+  const [error, setError] = useState<string | null>(null)
+  const [activeSymbol, setActiveSymbol] = useState('')
+  const [query] = useState(activeSymbol)
+  const [sectorFilter, setSectorFilter] = useState('Technology')
 
-  const sectors = ['All', ...new Set(STOCKS.map((s) => s.sector))]
+  useEffect(() => {
+    if (status === 'loading') {
+      hasAnimatedRef.current = false
+    }
+  }, [status])
 
-  const filtered = STOCKS.filter((s) => {
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      const cachedStocks = getCachedExploreData() ?? null
+
+      setStocks(cachedStocks ?? [])
+      setStatus(cachedStocks ? 'ready' : 'loading')
+      setError(null)
+
+      try {
+        const nextStocks = await loadExploreData()
+
+        if (cancelled) {
+          return
+        }
+
+        setStocks(nextStocks)
+        setActiveSymbol((current) =>
+          nextStocks.some((stock) => stock.symbol === current) ? current : (nextStocks[0]?.symbol ?? '')
+        )
+        setStatus('ready')
+      } catch (nextError) {
+        if (cancelled) {
+          return
+        }
+
+        setStocks([])
+        setActiveSymbol('')
+        setStatus('error')
+        setError(nextError instanceof Error ? nextError.message : 'Unknown error')
+      }
+    }
+
+    void load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const sectors = [...new Set(stocks.map((stock) => stock.sector).filter(Boolean)).values()]
+  const queryFiltered = stocks.filter((stock) => {
+    const normalizedQuery = query.trim().toLowerCase()
     const matchQuery =
-      !query ||
-      s.symbol.toLowerCase().includes(query.toLowerCase()) ||
-      s.name.toLowerCase().includes(query.toLowerCase())
-    const matchSector = sectorFilter === 'All' || s.sector === sectorFilter
-    return matchQuery && matchSector
+      !normalizedQuery ||
+      stock.symbol.toLowerCase().includes(normalizedQuery) ||
+      stock.name.toLowerCase().includes(normalizedQuery)
+    return matchQuery
   })
+  const filtered = limitStocksPerSector(queryFiltered, sectorFilter)
 
   const activeStock = filtered.find((stock) => stock.symbol === activeSymbol) ?? filtered[0] ?? null
 
+  useLayoutEffect(() => {
+    if (!rootRef.current || status !== 'ready' || hasAnimatedRef.current) {
+      return
+    }
+
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      const filters = rootRef.current?.querySelectorAll('[data-explore-filter-chip]')
+      const heroPanels = rootRef.current?.querySelectorAll('[data-explore-hero-panel]')
+      const heroValues = rootRef.current?.querySelectorAll('[data-explore-hero-value]')
+      const heroChart = rootRef.current?.querySelectorAll('[data-explore-chart]')
+      const metaCards = rootRef.current?.querySelectorAll('[data-explore-meta-card]')
+      const quickPickBlocks = rootRef.current?.querySelectorAll('[data-explore-quick-picks] > *')
+      const quickPickButtons = rootRef.current?.querySelectorAll('[data-explore-quick-picks] button')
+      const stockCards = rootRef.current?.querySelectorAll('[data-explore-grid] > *')
+      const noResults = rootRef.current?.querySelectorAll('[data-explore-no-results]')
+
+      const timeline = gsap.timeline({
+        defaults: {
+          ease: 'power3.out'
+        }
+      })
+
+      if (filters?.length) {
+        timeline.from(filters, {
+          x: 18,
+          opacity: 0,
+          duration: 0.38,
+          stagger: 0.05
+        })
+      }
+
+      if (heroPanels?.length) {
+        timeline.from(
+          heroPanels,
+          {
+            x: 28,
+            opacity: 0,
+            duration: 0.5,
+            stagger: 0.12
+          },
+          '-=0.14'
+        )
+      }
+
+      if (heroValues?.length) {
+        timeline.from(
+          heroValues,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.34,
+            stagger: 0.06
+          },
+          '-=0.34'
+        )
+      }
+
+      if (heroChart?.length) {
+        timeline.from(
+          heroChart,
+          {
+            y: 24,
+            opacity: 0,
+            duration: 0.48
+          },
+          '-=0.22'
+        )
+      }
+
+      if (metaCards?.length) {
+        timeline.from(
+          metaCards,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.34,
+            stagger: 0.05
+          },
+          '-=0.28'
+        )
+      }
+
+      if (quickPickBlocks?.length) {
+        timeline.from(
+          quickPickBlocks,
+          {
+            y: 14,
+            opacity: 0,
+            duration: 0.28,
+            stagger: 0.05
+          },
+          '-=0.22'
+        )
+      }
+
+      if (quickPickButtons?.length) {
+        timeline.from(
+          quickPickButtons,
+          {
+            y: 14,
+            opacity: 0,
+            duration: 0.24,
+            stagger: 0.035
+          },
+          '-=0.16'
+        )
+      }
+
+      if (stockCards?.length) {
+        timeline.from(
+          stockCards,
+          {
+            y: 22,
+            opacity: 0,
+            duration: 0.42,
+            stagger: 0.04
+          },
+          '-=0.18'
+        )
+      } else if (noResults?.length) {
+        timeline.from(
+          noResults,
+          {
+            y: 20,
+            opacity: 0,
+            duration: 0.42
+          },
+          '-=0.1'
+        )
+      }
+    }, rootRef)
+
+    hasAnimatedRef.current = true
+    return () => ctx.revert()
+  }, [activeStock, filtered.length, status])
+
   return (
-    <div className='space-y-6 max-w-7xl'>
-      {/* Search + Filters */}
-      <div
-        // initial={{ opacity: 0, y: 10 }}
-        // animate={{ opacity: 1, y: 0 }}
-        // transition={{ delay: 0.1 }}
-        className='flex flex-col sm:flex-row gap-3'>
-        <div className='flex gap-1.5 flex-wrap'>
-          {sectors.map((s) => (
+    <div ref={rootRef} className='space-y-6 max-w-7xl'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        {/*<input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder='Search trending symbols'
+          className='h-9 w-full rounded-sm bg-muted/20 px-3 text-sm font-display text-foreground outline-none placeholder:text-muted-foreground/60 sm:max-w-xs'
+        />*/}
+
+        <div data-explore-filters className='flex gap-1.5 overflow-scroll'>
+          {sectors.slice(0, 10).map((sector) => (
             <button
-              key={s}
-              onClick={() => setSectorFilter(s)}
-              className={`px-4 h-6 rounded-sm text-sm font-display transition-all
-                ${
-                  sectorFilter === s
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}>
-              {s}
+              key={sector}
+              data-explore-filter-chip
+              type='button'
+              onClick={() => setSectorFilter(sector)}
+              className={`px-1 md:px-4 h-6 rounded-sm text-sm font-display transition-all ${
+                sectorFilter === sector
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}>
+              {sector}
             </button>
           ))}
         </div>
       </div>
 
-      {activeStock ? (
+      {status === 'loading' && (
+        <div className='rounded-md bg-border/5 p-4 sm:p-5'>
+          <div className='space-y-2'>
+            <div className='h-3 w-24 rounded-full bg-muted/60' />
+            <div className='h-8 w-40 rounded-full bg-muted/60' />
+          </div>
+          <div className='mt-4 h-72 rounded-md bg-background/60' />
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className='rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-10 text-center'>
+          <p className='font-medium text-foreground'>Failed to load trending Yahoo Finance data.</p>
+          <p className='mt-1 text-sm text-muted-foreground'>{error}</p>
+        </div>
+      )}
+
+      {status === 'ready' && activeStock ? (
         <div className='grid grid-cols-1 xl:grid-cols-[minmax(0,1.8fr)_20rem] gap-3'>
-          <div className='rounded-md bg-border/5 p-2 sm:p-2'>
-            <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-              <div className='space-y-1'>
-                <p className='text-[8px] font-mono uppercase tracking-[0.24em] text-slate-500'>Focused ticker</p>
+          <div data-explore-hero-panel className='rounded-md bg-border/5 p-2 sm:p-2'>
+            <div className='flex gap-3 flex-row sm:items-start justify-between'>
+              <div data-explore-hero-value className='space-y-1'>
                 <div className='flex items-end gap-5'>
                   <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
                     {activeStock.symbol}
                   </h2>
-                  <span className='pb-1 text-sm text-foreground/70'>{activeStock.name}</span>
+                  <span className='pb-1 font-display text-sm text-foreground/70'>{activeStock.name}</span>
                 </div>
               </div>
 
-              <div className='text-left sm:text-right'>
-                <p className='text-2xl font-mono font-semibold text-foreground ticker-font'>
-                  ${activeStock.price.toFixed(2)}
+              <div data-explore-hero-value className='text-left sm:text-right'>
+                <p className='text-2xl font-display font-semibold text-foreground ticker-font'>
+                  {formatPriceValue(activeStock.price, activeStock.currency)}
                 </p>
-                <p className={`text-sm font-mono ${activeStock.change >= 0 ? 'text-foreground' : 'text-slate-500'}`}>
-                  {activeStock.change >= 0 ? '+' : ''}
-                  {activeStock.change.toFixed(1)}% today
+                <p
+                  className={`text-xs md:text-sm font-mono ${(activeStock.change ?? 0) >= 0 ? 'text-foreground' : 'text-slate-500'}`}>
+                  {formatPercentValue(activeStock.change)} today
                 </p>
               </div>
             </div>
 
-            <div className='mt-4 h-72'>
+            <div data-explore-chart className='mt-4 h-72'>
               <EvilAreaChart
                 data={activeStock.history}
-                chartConfig={getPriceChartConfig(`${activeStock.symbol} price`, activeStock.change >= 0)}
-                xDataKey='month'
+                chartConfig={getPriceChartConfig(`${activeStock.symbol} price`, (activeStock.change ?? 0) >= 0)}
+                xDataKey='label'
                 yDataKey='price'
                 className='h-full w-full min-h-0'
                 chartProps={{
@@ -193,34 +375,33 @@ export const Explore = () => {
             </div>
           </div>
 
-          <div className='rounded-md bg-border/5 p-4 sm:p-5'>
+          <div data-explore-hero-panel className='rounded-md bg-border/5 p-2 md:p-5'>
             <div className='grid grid-cols-2 gap-3'>
-              <div className='rounded-xl bg-background/80 p-3'>
-                <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Sector</p>
+              <div data-explore-meta-card className='rounded-xl bg-background/80 p-3'>
+                <Eyebrow>Sector</Eyebrow>
                 <p className='mt-2 text-sm font-medium text-foreground'>{activeStock.sector}</p>
               </div>
-              <div className='rounded-xl bg-background/80 p-3'>
-                <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Market Cap</p>
-                <p className='mt-2 text-sm font-medium text-foreground'>{activeStock.mcap}</p>
+              <div data-explore-meta-card className='rounded-xl bg-background/80 p-3'>
+                <Eyebrow>Market Cap</Eyebrow>
+                <p className='mt-2 text-sm font-medium text-foreground'>{activeStock.mcap ?? 'N/A'}</p>
               </div>
-              <div className='rounded-xl bg-background/80 p-3'>
-                <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Trend</p>
-                <p className='mt-2 text-sm font-medium text-foreground'>
-                  {activeStock.change >= 0 ? 'Accumulating higher lows' : 'Trading below recent highs'}
-                </p>
+              <div data-explore-meta-card className='rounded-xl bg-background/80 p-3'>
+                <Eyebrow>Industry</Eyebrow>
+                <p className='mt-2 text-sm font-medium text-foreground'>{activeStock.industry}</p>
               </div>
-              <div className='rounded-xl bg-background/80 p-3'>
-                <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'>Profile</p>
+              <div data-explore-meta-card className='rounded-xl bg-background/80 p-3'>
+                <Eyebrow>Profile</Eyebrow>
+                <p className='text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground'></p>
                 <Link
                   href={`/company/${activeStock.symbol}`}
                   className='mt-2 inline-flex text-sm font-medium text-primary transition-colors hover:text-foreground'>
-                  Open company
+                  View &rarr;
                 </Link>
               </div>
             </div>
 
-            <div className='mt-4 space-y-2'>
-              <p className='text-[10px] font-mono uppercase tracking-[0.24em] text-muted-foreground'>Quick picks</p>
+            <div data-explore-quick-picks className='md:mt-2 mt-4 space-y-3'>
+              <Eyebrow>Related picks</Eyebrow>
               <div className='flex flex-wrap gap-2'>
                 {filtered.slice(0, 8).map((stock) => (
                   <button
@@ -228,7 +409,7 @@ export const Explore = () => {
                     type='button'
                     aria-pressed={activeStock.symbol === stock.symbol}
                     onClick={() => setActiveSymbol(stock.symbol)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-mono transition-colors ${
+                    className={`rounded-md border px-3 py-1.5 text-xs font-display transition-colors ${
                       activeStock.symbol === stock.symbol
                         ? 'border-primary/30 bg-primary/10 text-primary'
                         : 'border-border/50 bg-background/80 text-muted-foreground hover:text-foreground'
@@ -240,28 +421,30 @@ export const Explore = () => {
             </div>
           </div>
         </div>
-      ) : (
-        <div className='rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-10 text-center'>
-          <p className='font-medium text-foreground'>No stocks match the current filters.</p>
+      ) : null}
+
+      {status === 'ready' && filtered.length === 0 && (
+        <div
+          data-explore-no-results
+          className='rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-10 text-center'>
+          <p className='font-medium text-foreground'>No trending stocks match the current filters.</p>
           <p className='mt-1 text-sm text-muted-foreground'>Try a broader search or switch sectors.</p>
         </div>
       )}
 
-      {/* Stock Grid */}
-      <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'>
-        {filtered.map((stock) => {
-          const isPositive = stock.change >= 0
-          return (
+      {status === 'ready' && filtered.length > 0 && (
+        <div data-explore-grid className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3'>
+          {filtered.map((stock) => (
             <Stock
               key={stock.symbol}
               stock={stock}
-              activeStock={activeStock}
+              activeStock={activeStock ?? undefined}
               setActiveSymbol={setActiveSymbol}
-              isPositive={isPositive}
+              isPositive={(stock.change ?? 0) >= 0}
             />
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

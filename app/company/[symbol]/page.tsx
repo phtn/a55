@@ -12,7 +12,7 @@ const CompanyPage = async ({ params }: CompanyPageProps) => {
 
   return (
     <AppShell>
-      <CompanyPriceClient symbol={symbol.toUpperCase()} />
+      <CompanyPriceClient key={symbol.toUpperCase()} symbol={symbol.toUpperCase()} />
     </AppShell>
   )
 }

@@ -1,87 +1,222 @@
+'use client'
+
 import { Icon } from '@/lib/icons'
+import {
+  type CommodityCardData,
+  getCachedMarketsData,
+  loadMarketsData,
+  type MarketCardData
+} from '@/lib/markets-data'
+import gsap from 'gsap'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-const GLOBAL_MARKETS = [
-  {
-    region: 'Americas',
-    markets: [
-      { name: 'S&P 500', location: 'US', value: 5248.49, change: 0.85, status: 'open' },
-      { name: 'NASDAQ', location: 'US', value: 16428.82, change: 1.14, status: 'open' },
-      { name: 'DOW', location: 'US', value: 39127.14, change: -0.11, status: 'open' },
-      { name: 'TSX', location: 'CA', value: 22145.3, change: 0.42, status: 'open' },
-      { name: 'BOVESPA', location: 'BR', value: 128432.5, change: -0.68, status: 'closed' }
-    ]
-  },
-  {
-    region: 'Europe',
-    markets: [
-      { name: 'FTSE 100', location: 'UK', value: 8164.12, change: 0.32, status: 'closed' },
-      { name: 'DAX', location: 'DE', value: 18384.35, change: 0.71, status: 'closed' },
-      { name: 'CAC 40', location: 'FR', value: 8088.24, change: 0.54, status: 'closed' },
-      { name: 'STOXX 50', location: 'EU', value: 5026.18, change: 0.48, status: 'closed' }
-    ]
-  },
-  {
-    region: 'Asia Pacific',
-    markets: [
-      { name: 'NIKKEI 225', location: 'JP', value: 40168.07, change: 1.28, status: 'closed' },
-      { name: 'HANG SENG', location: 'HK', value: 16512.92, change: -1.42, status: 'closed' },
-      { name: 'SHANGHAI', location: 'CN', value: 3048.97, change: 0.18, status: 'closed' },
-      { name: 'ASX 200', location: 'AU', value: 7824.3, change: 0.62, status: 'closed' },
-      { name: 'KOSPI', location: 'KR', value: 2674.15, change: -0.34, status: 'closed' }
-    ]
-  }
-]
+type AsyncStatus = 'loading' | 'ready' | 'error'
 
-const COMMODITIES = [
-  { name: 'Gold', unit: 'oz', price: 2341.6, change: 0.6 },
-  { name: 'Silver', unit: 'oz', price: 27.84, change: 1.2 },
-  { name: 'Crude Oil (WTI)', unit: 'bbl', price: 78.42, change: -1.3 },
-  { name: 'Natural Gas', unit: 'MMBtu', price: 1.82, change: -2.4 },
-  { name: 'Copper', unit: 'lb', price: 4.21, change: 0.8 }
-]
+const formatIndexValue = (value: number | null) => (value === null ? 'N/A' : value.toLocaleString())
+
+const formatCommodityValue = (value: number | null) => (value === null ? 'N/A' : `$${value.toLocaleString()}`)
+
+const formatPercentValue = (value: number | null, digits: number) =>
+  value === null ? 'N/A' : `${value >= 0 ? '+' : ''}${value.toFixed(digits)}%`
 
 export const Markets = () => {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const hasAnimatedRef = useRef(false)
+  const cachedData = getCachedMarketsData()
+  const [markets, setMarkets] = useState<
+    {
+      region: string
+      markets: MarketCardData[]
+    }[]
+  >(() => cachedData?.markets ?? [])
+  const [commodities, setCommodities] = useState<CommodityCardData[]>(() => cachedData?.commodities ?? [])
+  const [status, setStatus] = useState<AsyncStatus>(() => (cachedData ? 'ready' : 'loading'))
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (status === 'loading') {
+      hasAnimatedRef.current = false
+    }
+  }, [status])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      const nextCachedData = getCachedMarketsData() ?? null
+
+      setMarkets(nextCachedData?.markets ?? [])
+      setCommodities(nextCachedData?.commodities ?? [])
+      setStatus(nextCachedData ? 'ready' : 'loading')
+      setError(null)
+
+      try {
+        const nextData = await loadMarketsData()
+
+        if (cancelled) {
+          return
+        }
+
+        setMarkets(nextData.markets)
+        setCommodities(nextData.commodities)
+        setStatus('ready')
+      } catch (nextError) {
+        if (cancelled) {
+          return
+        }
+
+        setMarkets([])
+        setCommodities([])
+        setStatus('error')
+        setError(nextError instanceof Error ? nextError.message : 'Unknown error')
+      }
+    }
+
+    void load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!rootRef.current || status !== 'ready' || markets.length === 0 || hasAnimatedRef.current) {
+      return
+    }
+
+    if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      const regionBlocks = rootRef.current?.querySelectorAll('[data-markets-region]')
+      const marketCards = rootRef.current?.querySelectorAll('[data-markets-card]')
+      const commoditiesSection = rootRef.current?.querySelectorAll('[data-markets-commodities]')
+      const commodityCards = rootRef.current?.querySelectorAll('[data-markets-commodity-card]')
+
+      const timeline = gsap.timeline({
+        defaults: {
+          ease: 'power3.out'
+        }
+      })
+
+      if (regionBlocks?.length) {
+        timeline.from(regionBlocks, {
+          x: 28,
+          opacity: 0,
+          duration: 0.55,
+          stagger: 0.12
+        })
+      }
+
+      if (marketCards?.length) {
+        timeline.from(
+          marketCards,
+          {
+            y: 22,
+            opacity: 0,
+            duration: 0.42,
+            stagger: 0.04
+          },
+          '-=0.34'
+        )
+      }
+
+      if (commoditiesSection?.length) {
+        timeline.from(
+          commoditiesSection,
+          {
+            x: 18,
+            opacity: 0,
+            duration: 0.45
+          },
+          '-=0.28'
+        )
+      }
+
+      if (commodityCards?.length) {
+        timeline.from(
+          commodityCards,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.36,
+            stagger: 0.05
+          },
+          '-=0.2'
+        )
+      }
+    }, rootRef)
+
+    hasAnimatedRef.current = true
+    return () => ctx.revert()
+  }, [markets.length, status])
+
+  if (status === 'loading') {
+    return (
+      <div className='space-y-8 max-w-7xl'>
+        <div className='space-y-3'>
+          <div className='h-6 w-32 rounded-full bg-muted/60' />
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 w-full'>
+            {Array.from({ length: 5 }, (_, index) => (
+              <div key={index} className='rounded-lg bg-foreground/2 p-4'>
+                <div className='h-4 w-14 rounded-full bg-muted/50' />
+                <div className='mt-4 h-4 w-24 rounded-full bg-muted/50' />
+                <div className='mt-3 h-8 w-28 rounded-full bg-muted/60' />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className='space-y-8 max-w-7xl'>
+        <div className='rounded-2xl border border-destructive/30 bg-destructive/5 p-5'>
+          <p className='font-medium text-foreground'>Failed to load global market data</p>
+          <p className='mt-1 text-sm text-muted-foreground'>{error}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className='space-y-8 max-w-7xl'>
-      {/* Regions */}
-      {GLOBAL_MARKETS.map((region) => (
-        <div
-          key={region.region}
-          // initial={{ opacity: 0, y: 20 }}
-          // animate={{ opacity: 1, y: 0 }}
-          // transition={{ delay: ri * 0.1 }}
-        >
-          <h2 className='font-display font-bold text-slate-500 text-xl tracking-widest uppercase mb-3'>
+    <div ref={rootRef} className='space-y-16 max-w-7xl'>
+      {markets.map((region) => (
+        <div key={region.region} data-markets-region>
+          <h2 className='font-display font-semibold text-foreground text-2xl tracking-tight uppercase py-2'>
             {region.region}
           </h2>
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 w-full'>
-            {region.markets.map((m) => {
-              const isPositive = m.change >= 0
+            {region.markets.map((market) => {
+              const isPositive = (market.change ?? 0) >= 0
               return (
-                <div key={m.name} className='bg-foreground/2 rounded-lg p-4 cursor-default'>
+                <div key={market.symbol} data-markets-card className='bg-foreground/2 rounded-lg p-4 cursor-default'>
                   <div className='flex items-center justify-between mb-2'>
                     <div className='flex items-center gap-2'>
                       <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground'>
-                        {m.location}
+                        {market.location}
                       </span>
                       <div
-                        className={`w-1.5 h-1.5 rounded-full ${m.status === 'open' ? 'bg-foreground animate-pulse-glow' : 'bg-muted-foreground/30'}`}
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          market.status === 'open' ? 'bg-foreground animate-pulse-glow' : 'bg-muted-foreground/30'
+                        }`}
                       />
                     </div>
-                    {isPositive ? (
-                      <Icon name='arrow-right' className='w-3 h-3 text-foreground' />
-                    ) : (
-                      <Icon name='arrow-right' className='w-3 h-3 text-slate-500' />
-                    )}
+                    <Icon
+                      name={isPositive ? 'trending-up' : 'trending-down'}
+                      className={`w-3 h-3 ${isPositive ? 'text-foreground' : 'text-slate-500'}`}
+                    />
                   </div>
-                  <p className='text-sm font-medium text-slate-500'>{m.name}</p>
-                  <div className='flex items-end justify-between mt-2'>
+                  <p className='text-sm font-medium text-slate-500'>{market.name}</p>
+                  <div className='flex items-end justify-between mt-2 gap-3'>
                     <p className='text-2xl font-display font-semibold text-foreground ticker-font'>
-                      {m.value.toLocaleString()}
+                      {formatIndexValue(market.value)}
                     </p>
                     <span className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                      {isPositive ? '+' : ''}
-                      {m.change.toFixed(2)}%
+                      {formatPercentValue(market.change, 2)}
                     </span>
                   </div>
                 </div>
@@ -91,27 +226,21 @@ export const Markets = () => {
         </div>
       ))}
 
-      {/* Commodities */}
-      <div
-      // initial={{ opacity: 0, y: 20 }}
-      // animate={{ opacity: 1, y: 0 }}
-      // transition={{ delay: 0.4 }}
-      >
+      <div data-markets-commodities>
         <h2 className='text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3'>Commodities</h2>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3'>
-          {COMMODITIES.map((c) => {
-            const isPositive = c.change >= 0
+          {commodities.map((commodity) => {
+            const isPositive = (commodity.change ?? 0) >= 0
             return (
-              <div key={c.name} className='glass-panel-hover rounded-xl p-4'>
-                <p className='text-sm font-medium text-foreground'>{c.name}</p>
-                <p className='text-[10px] text-muted-foreground font-mono mt-0.5'>per {c.unit}</p>
-                <div className='flex items-end justify-between mt-3'>
+              <div key={commodity.symbol} data-markets-commodity-card className='glass-panel-hover rounded-xl p-4'>
+                <p className='text-sm font-medium text-foreground'>{commodity.name}</p>
+                <p className='text-[10px] text-muted-foreground font-mono mt-0.5'>per {commodity.unit}</p>
+                <div className='flex items-end justify-between mt-3 gap-3'>
                   <p className='text-lg font-mono font-semibold text-foreground ticker-font'>
-                    ${c.price.toLocaleString()}
+                    {formatCommodityValue(commodity.price)}
                   </p>
                   <span className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                    {isPositive ? '+' : ''}
-                    {c.change.toFixed(1)}%
+                    {formatPercentValue(commodity.change, 1)}
                   </span>
                 </div>
               </div>

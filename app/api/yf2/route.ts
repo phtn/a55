@@ -1,11 +1,19 @@
-import { executeYf2Request, YF2_OPERATIONS, Yf2InputError, Yf2NotFoundError, type Yf2Operation, type Yf2Request } from '@/lib/yf2'
+import {
+  executeYf2Request,
+  YF2_OPERATIONS,
+  Yf2InputError,
+  Yf2NotFoundError,
+  type Yf2ModuleOptions,
+  type Yf2Operation,
+  type Yf2Request
+} from '@/lib/yf2'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const YF2_OPERATION_SET = new Set<Yf2Operation>(YF2_OPERATIONS)
-const CONTROL_KEYS = new Set(['operation', 'module', 'symbol', 'symbols', 'query', 'options'])
+const CONTROL_KEYS = new Set(['operation', 'module', 'symbol', 'symbols', 'query', 'options', 'moduleOptions'])
 const ARRAY_OPTION_KEYS = new Set(['fields', 'modules'])
 const BOOLEAN_OPTION_KEYS = new Set(['formatted', 'includePrePost', 'useYfid', 'merge', 'padTimeSeries'])
 const NUMBER_OPTION_KEYS = new Set(['count', 'newsCount', 'quotesCount', 'reportsCount', 'start'])
@@ -149,6 +157,32 @@ const readOptionalStringArray = (value: unknown, field: string) => {
   return values.length > 0 ? values : undefined
 }
 
+const readOptionalModuleOptions = (value: unknown): Yf2ModuleOptions | undefined => {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  if (!isRecord(value)) {
+    throw new Yf2InputError('`moduleOptions` must be an object.')
+  }
+
+  const { validateResult } = value
+
+  if (validateResult !== undefined && typeof validateResult !== 'boolean') {
+    throw new Yf2InputError('`moduleOptions.validateResult` must be a boolean.')
+  }
+
+  if (validateResult === false) {
+    return { validateResult: false }
+  }
+
+  if (validateResult === true) {
+    return { validateResult: true }
+  }
+
+  return {}
+}
+
 const parsePostBody = (body: unknown): Yf2Request => {
   if (!isRecord(body)) {
     throw new Yf2InputError('Request body must be a JSON object.')
@@ -166,7 +200,8 @@ const parsePostBody = (body: unknown): Yf2Request => {
     symbol: readOptionalString(body.symbol, 'symbol'),
     symbols: readOptionalStringArray(body.symbols, 'symbols'),
     query: readOptionalString(body.query, 'query'),
-    options
+    options,
+    moduleOptions: readOptionalModuleOptions(body.moduleOptions)
   }
 }
 

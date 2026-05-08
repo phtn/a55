@@ -8,6 +8,7 @@ import { Title } from '@/components/ui/title'
 import { Icon } from '@/lib/icons'
 import gsap from 'gsap'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'
@@ -207,6 +208,41 @@ type FinancialMetric = {
 }
 
 const EMPTY_HISTORY: PriceHistoryPoint[] = []
+const COMPANY_QUOTE_FIELDS = [
+  'symbol',
+  'currency',
+  'shortName',
+  'longName',
+  'quoteType',
+  'fullExchangeName',
+  'quoteSourceName',
+  'regularMarketPrice',
+  'regularMarketPreviousClose',
+  'regularMarketChange',
+  'regularMarketChangePercent',
+  'regularMarketTime',
+  'regularMarketVolume',
+  'marketCap'
+] as const
+const COMPANY_SUMMARY_MODULES = [
+  'price',
+  'summaryDetail',
+  'defaultKeyStatistics',
+  'financialData',
+  'assetProfile',
+  'earnings'
+] as const
+
+type GrokCacheEntry = {
+  error: string | null
+  profile: GrokProfileApiResponse | null
+  status: OptionalAsyncStatus
+}
+
+const companyDataCache = new Map<string, CompanyPageData>()
+const companyDataPromiseCache = new Map<string, Promise<CompanyPageData>>()
+const grokCache = new Map<string, GrokCacheEntry>()
+const grokPromiseCache = new Map<string, Promise<GrokCacheEntry>>()
 
 const getPriceChartConfig = (label: string, positive: boolean) =>
   ({
@@ -224,6 +260,14 @@ const getHistoryStart = () => {
   start.setDate(start.getDate() - HISTORY_LOOKBACK_DAYS)
   return start.toISOString().slice(0, 10)
 }
+
+const normalizeCompanySymbol = (value: string) => value.trim().toUpperCase()
+
+const getCompanyNameFromData = (data: CompanyPageData, fallbackSymbol: string) =>
+  data.quote.longName || data.quote.shortName || data.chart.meta.longName || data.chart.meta.shortName || fallbackSymbol
+
+const getGrokQueryFromData = (data: CompanyPageData) =>
+  data.quote.longName || data.quote.shortName || data.chart.meta.longName || data.chart.meta.shortName || null
 
 const toNumber = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -322,7 +366,7 @@ const readApiError = async (response: Response, fallbackMessage: string) => {
   return (await response.text()) || fallbackMessage
 }
 
-const fetchYf2 = async <T,>(request: Yf2RequestBody, signal: AbortSignal) => {
+const fetchYf2 = async <T,>(request: Yf2RequestBody, signal?: AbortSignal) => {
   const response = await fetch('/api/yf2', {
     method: 'POST',
     headers: {
@@ -343,7 +387,7 @@ const fetchYf2 = async <T,>(request: Yf2RequestBody, signal: AbortSignal) => {
 const getGrokipediaHref = (query: string) =>
   `https://grokipedia.com/page/${encodeURIComponent(query.trim().replace(/\s+/g, '_'))}`
 
-const fetchGrokProfile = async (query: string, signal: AbortSignal) => {
+const fetchGrokProfile = async (query: string, signal?: AbortSignal) => {
   const response = await fetch(`/api/grok?query=${encodeURIComponent(query)}`, {
     signal
   })
@@ -355,135 +399,232 @@ const fetchGrokProfile = async (query: string, signal: AbortSignal) => {
   return (await response.json()) as GrokProfileApiResponse
 }
 
+const fetchCompanyPageData = async (symbol: string, signal?: AbortSignal) => {
+  const normalizedSymbol = normalizeCompanySymbol(symbol)
+
+  const quotePromise = fetchYf2<CompanyQuoteApi>(
+    {
+      operation: 'quote',
+      symbol: normalizedSymbol,
+      options: {
+        fields: COMPANY_QUOTE_FIELDS
+      }
+    },
+    signal
+  )
+  const chartPromise = fetchYf2<CompanyChartApiData>(
+    {
+      operation: 'chart',
+      symbol: normalizedSymbol,
+      options: {
+        period1: getHistoryStart(),
+        interval: '1d'
+      }
+    },
+    signal
+  )
+  const recommendationsPromise = fetchYf2<CompanyRecommendationsApi>(
+    {
+      operation: 'recommendationsBySymbol',
+      symbol: normalizedSymbol
+    },
+    signal
+  ).catch(() => null)
+  const summaryPromise = fetchYf2<CompanySummaryApi>(
+    {
+      operation: 'quoteSummary',
+      symbol: normalizedSymbol,
+      options: {
+        modules: COMPANY_SUMMARY_MODULES
+      }
+    },
+    signal
+  )
+
+  const [quote, chart, recommendations, summary] = await Promise.all([
+    quotePromise,
+    chartPromise,
+    recommendationsPromise,
+    summaryPromise
+  ])
+
+  return {
+    quote,
+    chart,
+    summary,
+    recommendations
+  } satisfies CompanyPageData
+}
+
+const getCachedCompanyData = (symbol: string) => companyDataCache.get(normalizeCompanySymbol(symbol))
+
+const primeCompanyDataCache = (symbol: string, data: CompanyPageData) => {
+  companyDataCache.set(normalizeCompanySymbol(symbol), data)
+}
+
+const loadCompanyPageData = (symbol: string) => {
+  const normalizedSymbol = normalizeCompanySymbol(symbol)
+  const cachedData = companyDataCache.get(normalizedSymbol)
+
+  if (cachedData) {
+    return Promise.resolve(cachedData)
+  }
+
+  const existingPromise = companyDataPromiseCache.get(normalizedSymbol)
+
+  if (existingPromise) {
+    return existingPromise
+  }
+
+  const promise = fetchCompanyPageData(normalizedSymbol)
+    .then((data) => {
+      companyDataCache.set(normalizedSymbol, data)
+      return data
+    })
+    .finally(() => {
+      companyDataPromiseCache.delete(normalizedSymbol)
+    })
+
+  companyDataPromiseCache.set(normalizedSymbol, promise)
+
+  return promise
+}
+
+const getCachedGrokEntry = (symbol: string) => grokCache.get(normalizeCompanySymbol(symbol))
+
+const loadGrokCacheEntry = (symbol: string, query: string | null) => {
+  const normalizedSymbol = normalizeCompanySymbol(symbol)
+  const cachedEntry = grokCache.get(normalizedSymbol)
+
+  if (cachedEntry) {
+    return Promise.resolve(cachedEntry)
+  }
+
+  const existingPromise = grokPromiseCache.get(normalizedSymbol)
+
+  if (existingPromise) {
+    return existingPromise
+  }
+
+  if (!query) {
+    const idleEntry: GrokCacheEntry = {
+      error: null,
+      profile: null,
+      status: 'idle'
+    }
+
+    grokCache.set(normalizedSymbol, idleEntry)
+    return Promise.resolve(idleEntry)
+  }
+
+  const promise = fetchGrokProfile(query)
+    .then(
+      (profile) =>
+        ({
+          error: null,
+          profile,
+          status: 'ready'
+        }) satisfies GrokCacheEntry
+    )
+    .catch(
+      (error) =>
+        ({
+          error: error instanceof Error ? error.message : 'Unknown error',
+          profile: null,
+          status: 'error'
+        }) satisfies GrokCacheEntry
+    )
+    .then((entry) => {
+      grokCache.set(normalizedSymbol, entry)
+      return entry
+    })
+    .finally(() => {
+      grokPromiseCache.delete(normalizedSymbol)
+    })
+
+  grokPromiseCache.set(normalizedSymbol, promise)
+
+  return promise
+}
+
+const preloadCompanyRoute = (symbol: string) => {
+  const normalizedSymbol = normalizeCompanySymbol(symbol)
+  const cachedData = companyDataCache.get(normalizedSymbol)
+
+  if (cachedData) {
+    void loadGrokCacheEntry(normalizedSymbol, getGrokQueryFromData(cachedData))
+    return
+  }
+
+  const existingPromise = companyDataPromiseCache.get(normalizedSymbol)
+
+  if (existingPromise) {
+    void existingPromise.then((data) => loadGrokCacheEntry(normalizedSymbol, getGrokQueryFromData(data)))
+    return
+  }
+
+  void loadCompanyPageData(normalizedSymbol).then((data) =>
+    loadGrokCacheEntry(normalizedSymbol, getGrokQueryFromData(data))
+  )
+}
+
 export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
+  const normalizedSymbol = normalizeCompanySymbol(symbol)
+  const cachedInitialData = getCachedCompanyData(normalizedSymbol) ?? null
+  const cachedInitialGrokEntry = getCachedGrokEntry(normalizedSymbol)
   const rootRef = useRef<HTMLDivElement>(null)
-  const [data, setData] = useState<CompanyPageData | null>(null)
-  const [status, setStatus] = useState<AsyncStatus>('loading')
+  const router = useRouter()
+  const [data, setData] = useState<CompanyPageData | null>(cachedInitialData)
+  const [status, setStatus] = useState<AsyncStatus>(cachedInitialData ? 'ready' : 'loading')
   const [error, setError] = useState<string | null>(null)
-  const [grokProfile, setGrokProfile] = useState<GrokProfileApiResponse | null>(null)
-  const [grokStatus, setGrokStatus] = useState<OptionalAsyncStatus>('idle')
-  const [grokError, setGrokError] = useState<string | null>(null)
+  const [grokProfile, setGrokProfile] = useState<GrokProfileApiResponse | null>(cachedInitialGrokEntry?.profile ?? null)
+  const [grokStatus, setGrokStatus] = useState<OptionalAsyncStatus>(cachedInitialGrokEntry?.status ?? 'idle')
+  const [grokError, setGrokError] = useState<string | null>(cachedInitialGrokEntry?.error ?? null)
   const [requestKey, setRequestKey] = useState(0)
   const { setTitle, setWebsite } = usePageTitle()
 
   useEffect(() => {
-    const controller = new AbortController()
+    let cancelled = false
 
     const load = async () => {
-      setStatus('loading')
+      const cachedData = getCachedCompanyData(normalizedSymbol) ?? null
+      const cachedGrokEntry = getCachedGrokEntry(normalizedSymbol)
+
+      setData(cachedData)
+      setStatus(cachedData && requestKey === 0 ? 'ready' : 'loading')
       setError(null)
-      setGrokProfile(null)
-      setGrokStatus('idle')
-      setGrokError(null)
-
-      const loadGrok = (query: string) => {
-        setGrokStatus('loading')
-
-        void fetchGrokProfile(query, controller.signal)
-          .then((nextProfile) => {
-            if (controller.signal.aborted) {
-              return
-            }
-
-            setGrokProfile(nextProfile)
-            setGrokStatus('ready')
-          })
-          .catch((nextError) => {
-            if (controller.signal.aborted) {
-              return
-            }
-
-            setGrokProfile(null)
-            setGrokStatus('error')
-            setGrokError(nextError instanceof Error ? nextError.message : 'Unknown error')
-          })
-      }
+      setGrokProfile(cachedGrokEntry?.profile ?? null)
+      setGrokStatus(cachedGrokEntry?.status ?? 'idle')
+      setGrokError(cachedGrokEntry?.error ?? null)
 
       try {
-        const quotePromise = fetchYf2<CompanyQuoteApi>(
-          {
-            operation: 'quote',
-            symbol,
-            options: {
-              fields: [
-                'symbol',
-                'currency',
-                'shortName',
-                'longName',
-                'quoteType',
-                'fullExchangeName',
-                'quoteSourceName',
-                'regularMarketPrice',
-                'regularMarketPreviousClose',
-                'regularMarketChange',
-                'regularMarketChangePercent',
-                'regularMarketTime',
-                'regularMarketVolume',
-                'marketCap'
-              ]
-            }
-          },
-          controller.signal
-        )
-        const chartPromise = fetchYf2<CompanyChartApiData>(
-          {
-            operation: 'chart',
-            symbol,
-            options: {
-              period1: getHistoryStart(),
-              interval: '1d'
-            }
-          },
-          controller.signal
-        )
-        const recommendationsPromise = fetchYf2<CompanyRecommendationsApi>(
-          {
-            operation: 'recommendationsBySymbol',
-            symbol
-          },
-          controller.signal
-        ).catch(() => null)
-        const summaryPromise = fetchYf2<CompanySummaryApi>(
-          {
-            operation: 'quoteSummary',
-            symbol,
-            options: {
-              modules: ['price', 'summaryDetail', 'defaultKeyStatistics', 'financialData', 'assetProfile', 'earnings']
-            }
-          },
-          controller.signal
-        )
+        const nextData =
+          requestKey === 0 ? await loadCompanyPageData(normalizedSymbol) : await fetchCompanyPageData(normalizedSymbol)
 
-        const quote = await quotePromise
-        const quoteCompanyName = quote.longName || quote.shortName
-
-        if (quoteCompanyName) {
-          loadGrok(quoteCompanyName)
+        if (requestKey > 0) {
+          primeCompanyDataCache(normalizedSymbol, nextData)
         }
 
-        const [chart, recommendations, summary] = await Promise.all([
-          chartPromise,
-          recommendationsPromise,
-          summaryPromise
-        ])
-        const fallbackCompanyName = chart.meta.longName || chart.meta.shortName
-
-        if (!quoteCompanyName && fallbackCompanyName) {
-          loadGrok(fallbackCompanyName)
-        }
-
-        if (controller.signal.aborted) {
+        if (cancelled) {
           return
         }
 
-        setData({ quote, chart, summary, recommendations })
+        setData(nextData)
         setStatus('ready')
-      } catch (nextError) {
-        if (controller.signal.aborted) {
+        const nextGrokEntry = await loadGrokCacheEntry(normalizedSymbol, getGrokQueryFromData(nextData))
+
+        if (cancelled) {
           return
         }
 
-        controller.abort()
+        setGrokProfile(nextGrokEntry.profile)
+        setGrokStatus(nextGrokEntry.status)
+        setGrokError(nextGrokEntry.error)
+      } catch (nextError) {
+        if (cancelled) {
+          return
+        }
+
         setData(null)
         setStatus('error')
         setError(nextError instanceof Error ? nextError.message : 'Unknown error')
@@ -495,8 +636,10 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
 
     void load()
 
-    return () => controller.abort()
-  }, [requestKey, symbol])
+    return () => {
+      cancelled = true
+    }
+  }, [normalizedSymbol, requestKey])
 
   const currencyCode =
     data?.quote.currency ||
@@ -505,8 +648,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
     data?.summary.financialData?.financialCurrency ||
     DEFAULT_CURRENCY_CODE
   const financialCurrencyCode = data?.summary.financialData?.financialCurrency || currencyCode
-  const companyName =
-    data?.quote.longName || data?.quote.shortName || data?.chart.meta.longName || data?.chart.meta.shortName || symbol
+  const companyName = data ? getCompanyNameFromData(data, normalizedSymbol) : normalizedSymbol
   const companyWebsite = data?.summary.assetProfile?.website || null
 
   useEffect(() => {
@@ -529,77 +671,147 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
     }
 
     const ctx = gsap.context(() => {
+      const headerValues = rootRef.current?.querySelectorAll('[data-animate="header-value"]')
+      const heroShells = rootRef.current?.querySelectorAll('[data-animate="hero-shell"]')
+      const heroValues = rootRef.current?.querySelectorAll('[data-animate="hero-value"]')
+      const heroChart = rootRef.current?.querySelectorAll('[data-animate="hero-chart"]')
+      const statsCards = rootRef.current?.querySelectorAll('[data-animate="stats-card"]')
+      const businessLinks = rootRef.current?.querySelectorAll('[data-animate="business-link"]')
+      const sectionHeadings = rootRef.current?.querySelectorAll('[data-animate="section-heading"]')
+      const metricCards = rootRef.current?.querySelectorAll('[data-animate="metric-card"]')
+      const earningsCards = rootRef.current?.querySelectorAll('[data-animate="earnings-card"]')
+      const profileBlocks = rootRef.current?.querySelectorAll('[data-animate="profile-block"]')
+
       const timeline = gsap.timeline({
         defaults: {
           ease: 'power3.out'
         }
       })
 
-      timeline
-        .from('[data-animate="page-header"]', {
-          x: -24,
+      if (headerValues?.length) {
+        timeline.from(headerValues, {
+          x: -18,
           opacity: 0,
-          duration: 0.8
+          duration: 0.44,
+          stagger: 0.08
         })
-        .from(
-          '[data-animate="hero-card"]',
+      }
+
+      if (heroShells?.length) {
+        timeline.from(
+          heroShells,
           {
-            x: -28,
+            x: -24,
             opacity: 0,
-            duration: 0.65
-          },
-          '-=0.2'
-        )
-        .from(
-          '[data-animate="stats-card"]',
-          {
-            x: -18,
-            opacity: 0,
-            duration: 0.4,
-            stagger: 0.05
-          },
-          '-=0.35'
-        )
-        .from(
-          '[data-animate="section-heading"]',
-          {
-            x: -18,
-            opacity: 0,
-            duration: 0.4,
+            duration: 0.52,
             stagger: 0.12
           },
+          '-=0.16'
+        )
+      }
+
+      if (heroValues?.length) {
+        timeline.from(
+          heroValues,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.34,
+            stagger: 0.06
+          },
+          '-=0.34'
+        )
+      }
+
+      if (heroChart?.length) {
+        timeline.from(
+          heroChart,
+          {
+            y: 24,
+            opacity: 0,
+            duration: 0.48
+          },
           '-=0.2'
         )
-        .from(
-          '[data-animate="metric-card"]',
+      }
+
+      if (statsCards?.length) {
+        timeline.from(
+          statsCards,
           {
-            x: -18,
+            y: 16,
             opacity: 0,
-            duration: 0.4,
+            duration: 0.32,
             stagger: 0.04
           },
-          '-=0.25'
+          '-=0.28'
         )
-        .from(
-          '[data-animate="earnings-card"]',
+      }
+
+      if (businessLinks?.length) {
+        timeline.from(
+          businessLinks,
           {
-            x: -18,
+            y: 10,
             opacity: 0,
-            duration: 0.38,
+            duration: 0.22,
+            stagger: 0.03
+          },
+          '-=0.16'
+        )
+      }
+
+      if (sectionHeadings?.length) {
+        timeline.from(
+          sectionHeadings,
+          {
+            y: 16,
+            opacity: 0,
+            duration: 0.34,
+            stagger: 0.12
+          },
+          '-=0.12'
+        )
+      }
+
+      if (metricCards?.length) {
+        timeline.from(
+          metricCards,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.34,
             stagger: 0.04
           },
-          '-=0.2'
+          '-=0.18'
         )
-        .from(
-          '[data-animate="profile-block"]',
+      }
+
+      if (earningsCards?.length) {
+        timeline.from(
+          earningsCards,
           {
-            x: -22,
+            y: 16,
             opacity: 0,
-            duration: 0.5,
+            duration: 0.3,
+            stagger: 0.04
+          },
+          '-=0.14'
+        )
+      }
+
+      if (profileBlocks?.length) {
+        timeline.from(
+          profileBlocks,
+          {
+            y: 18,
+            opacity: 0,
+            duration: 0.42,
             stagger: 0.08
           },
-          '-=0.15'
+          '-=0.12'
         )
+      }
     }, rootRef)
 
     return () => ctx.revert()
@@ -659,7 +871,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           score: recommendation.score
         }))
         .filter((recommendation, index, values) => {
-          if (!recommendation.symbol || recommendation.symbol === symbol.toUpperCase()) {
+          if (!recommendation.symbol || recommendation.symbol === normalizedSymbol) {
             return false
           }
 
@@ -667,8 +879,19 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
         })
         .sort((a, b) => b.score - a.score)
         .slice(0, 6),
-    [data, symbol]
+    [data, normalizedSymbol]
   )
+
+  useEffect(() => {
+    if (relatedTickers.length === 0) {
+      return
+    }
+
+    relatedTickers.forEach((ticker) => {
+      router.prefetch(`/company/${ticker.symbol}`)
+      preloadCompanyRoute(ticker.symbol)
+    })
+  }, [relatedTickers, router])
 
   const history = useMemo<PriceHistoryPoint[]>(
     () =>
@@ -766,23 +989,43 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   return (
     <div ref={rootRef} className='max-w-7xl space-y-6'>
       <div data-animate='page-header' className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
-        <div className='space-y-1'>
-          <div className='flex flex-wrap items-end gap-3 font-display'>
-            <div>
-              <p className='flex items-center space-x-px font-display text-foreground text-[8px] italic uppercase tracking-widest'>
+        <div className='flex items-start justify-between'>
+          <div data-animate='header-value'>
+            <div className='md:flex flex-wrap md:items-end gap-3 font-display'>
+              <div>
+                {analystRecommendation && (
+                  <p className='hidden md:flex items-center space-x-px font-display text-foreground text-[8px] italic uppercase tracking-widest'>
+                    <Icon name='arrow-right' className='size-3' />
+                    <span>{formatRecommendation(analystRecommendation)}</span>
+                  </p>
+                )}
+                <h1 className='md:text-3xl text-2xl font-semibold tracking-tight text-foreground'>{symbol}</h1>
+              </div>
+              <h2 className='pb-1 text-base text-foreground/80'>{companyName}</h2>
+            </div>
+            <Eyebrow>
+              {quoteType} on {exchangeName}
+            </Eyebrow>
+          </div>
+          <div data-animate='header-value' className='text-right md:hidden'>
+            <p className='text-2xl font-display font-semibold text-foreground ticker-font'>
+              {formatNullableCurrency(latestPrice, currencyCode)}
+            </p>
+            {trendPercent !== null && (
+              <p className={`pb-1 text-sm font-display ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
+                {formatPercentValue(trendPercent)}
+              </p>
+            )}
+            {analystRecommendation && (
+              <p className='md:hidden flex items-center justify-end space-x-1 font-display font-medium text-foreground text-[8px] uppercase tracking-widest'>
                 <Icon name='arrow-right' className='size-3' />
                 <span>{formatRecommendation(analystRecommendation)}</span>
               </p>
-              <h1 className='text-3xl font-semibold tracking-tight text-foreground'>{symbol}</h1>
-            </div>
-            <h2 className='pb-1 text-base text-foreground/80'>{companyName}</h2>
+            )}
           </div>
-          <Eyebrow>
-            {quoteType} on {exchangeName}
-          </Eyebrow>
         </div>
 
-        <div className='flex items-center w-1/3 gap-3'>
+        <div data-animate='header-value' className='hidden md:flex items-center w-1/3 gap-3'>
           <button
             type='button'
             onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
@@ -793,12 +1036,12 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
       </div>
 
       {status === 'loading' && (
-        <div className='rounded-2xl border border-border/50 bg-background/70 p-4 sm:p-5'>
+        <div className='rounded-2xl border border-border/50 bg-background/70 p-0 md:p-5'>
           <div className='space-y-2'>
             <div className='h-3 w-28 rounded-full bg-muted/60' />
             <div className='h-8 w-40 rounded-full bg-muted/60' />
           </div>
-          <div className='mt-4 h-80'>
+          <div className='mt-4 md:h-80 h-64'>
             <EvilAreaChart
               data={EMPTY_HISTORY}
               chartConfig={getPriceChartConfig(`${symbol} close`, true)}
@@ -815,7 +1058,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
       )}
 
       {status === 'error' && (
-        <div className='rounded-2xl border border-destructive/30 bg-destructive/5 p-5'>
+        <div className='rounded-md border border-foreground bg-foreground/2 p-2 md:p-5'>
           <p className='font-medium text-foreground'>Failed to load Yahoo Finance company data</p>
           <p className='mt-1 text-sm text-muted-foreground'>{error}</p>
         </div>
@@ -824,13 +1067,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
       {status === 'ready' && data && (
         <>
           <div data-animate='hero-card' className='grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.9fr)_22rem]'>
-            <div className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-4 sm:p-5'>
+            <div data-animate='hero-shell' className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-0 md:p-5'>
               <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                <div className='space-y-1'>
+                <div data-animate='hero-value' className='space-y-1'>
                   {/*<p className='font-display text-foreground text-[8px] uppercase tracking-[0.24em]'>
                     {formatRecommendation(analystRecommendation)}
                   </p>*/}
-                  <div className='flex items-end gap-4'>
+                  <div className='hidden md:flex items-end gap-4'>
                     <h2 className='font-display text-3xl font-semibold tracking-tight text-foreground'>
                       {formatNullableCurrency(latestPrice, currencyCode)}
                     </h2>
@@ -841,18 +1084,18 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                       </span>
                     )}
                   </div>
-                  <p className='text-sm text-muted-foreground'>{sourceName}</p>
+                  <p className='hidden md:flex text-sm text-muted-foreground'>{sourceName}</p>
                 </div>
 
-                <div className='text-left sm:text-right'>
-                  <p className='text-foreground/70 text-[8px] uppercase tracking-[0.18em]'>Showing</p>
+                <div data-animate='hero-value' className='hidden md:flex text-left sm:text-right'>
+                  <p className='hidden md:flex text-foreground/70 text-[8px] uppercase tracking-[0.18em]'>Showing</p>
                   <p className='mt-2 text-sm text-foreground/60'>
                     {chartData.length} of {history.length.toLocaleString()} price points
                   </p>
                 </div>
               </div>
 
-              <div className='mt-4 h-100'>
+              <div data-animate='hero-chart' className='mt-4 h-64 md:h-100'>
                 <EvilAreaChart
                   data={chartData}
                   chartConfig={getPriceChartConfig(`${symbol} close`, isPositive)}
@@ -885,7 +1128,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               </div>
             </div>
 
-            <div className=''>
+            <div data-animate='hero-shell' className=''>
               <div className='grid grid-cols-2 gap-3'>
                 {stats.map((stat, index) => (
                   <div key={index} data-animate='stats-card' className='rounded-xl font-display bg-border/6 p-3'>
@@ -895,7 +1138,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                 ))}
               </div>
 
-              <div className='mt-2 rounded-xl bg-background/80 p-3'>
+              <div data-animate='hero-value' className='mt-2 rounded-xl bg-background/80 p-3'>
                 <Eyebrow>Business</Eyebrow>
                 <div className='mt-2 space-y-2 text-foreground text-sm'>
                   <div className='font-display flex items-center space-x-4'>
@@ -910,6 +1153,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                           <Link
                             key={ticker.symbol}
                             href={`/company/${ticker.symbol}`}
+                            data-animate='business-link'
                             className='inline-flex items-center gap-1 rounded-sm border border-border bg-border/20 hover:border-foreground/25 px-2.5 py-1 font-display text-[8px] uppercase text-foreground/78 transition-colors hover:bg-foreground/4 hover:text-foreground'>
                             <span className='tracking-wider'>{ticker.symbol}</span>
                             <span className='text-foreground/60'>
@@ -1003,7 +1247,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                     target='_blank'
                     rel='noreferrer'
                     className='flex items-center space-x-2 pt-1 font-display text-foreground/70 text-xs hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
-                    <Icon name='grok' className='size-3.5' />
+                    {grokProfile?.data.factChecked && <Icon name='grok' className='size-3.5' />}
                     <span>{grokProfile?.data.factChecked ?? 'Read in Grokipedia'}</span>
                   </a>
                 )}
@@ -1021,7 +1265,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               )}
 
               {profileParagraphs.length > 0 && (
-                <div className='space-y-4 text-base leading-7 text-foreground/85'>
+                <div className='space-y-4 px-2 text-base leading-7 text-foreground/70 font-display'>
                   {profileParagraphs.map((paragraph, index) => (
                     <p
                       key={`${index}-${paragraph.slice(0, 24)}`}

@@ -1,7 +1,11 @@
 'use client'
 import { Icon, IconName } from '@/lib/icons'
+import { preloadExploreData } from '@/lib/explore-data'
+import { preloadMarketsData } from '@/lib/markets-data'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useRef } from 'react'
+import { useOverviewPrefetch } from './overview-prefetch-provider'
 import { ThemeToggle } from './theme-toggle'
 
 const navItems: { icon: IconName; label: string; path: string }[] = [
@@ -13,6 +17,31 @@ const navItems: { icon: IconName; label: string; path: string }[] = [
 
 export const Sidebar = () => {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isOverviewLoaded } = useOverviewPrefetch()
+  const hasPrefetchedRef = useRef(false)
+
+  useEffect(() => {
+    if (pathname !== '/' || !isOverviewLoaded || hasPrefetchedRef.current) {
+      return
+    }
+
+    navItems.forEach(({ path }) => {
+      if (path !== pathname) {
+        router.prefetch(path)
+
+        if (path === '/explore') {
+          preloadExploreData()
+        }
+
+        if (path === '/markets') {
+          preloadMarketsData()
+        }
+      }
+    })
+
+    hasPrefetchedRef.current = true
+  }, [isOverviewLoaded, pathname, router])
 
   return (
     <aside className='fixed left-0 top-0 bottom-0 w-16 lg:min-w-54 bg-background border-r-[0.5px] border-dotted border-border z-50 flex flex-col'>
@@ -34,6 +63,7 @@ export const Sidebar = () => {
             <Link
               key={path}
               href={path}
+              prefetch='auto'
               className={`relative flex items-center gap-3 px-6 h-10 group
                 ${
                   isActive
