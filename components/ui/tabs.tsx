@@ -27,7 +27,7 @@ export const Tabs = ({ tabs }: TabsProps) => {
         {tabs.map((tab, index) => (
           <Root.Tab
             key={tab.value}
-            className={`flex h-7 items-center justify-center border-0 px-2 text-sm font-normal break-keep whitespace-nowrap text-foreground/60 outline-hidden select-none before:inset-x-0 before:inset-y-1 before:rounded-xs before:-outline-offset-1 before:outline-blue-800 hover:text-foreground focus-visible:relative focus-visible:before:absolute focus-visible:before:outline-2 data-active:text-background ${index === 0 ? 'first:ml-1' : ''}`}
+            className={`flex h-7 items-center justify-center border-0 px-2 text-sm font-normal break-keep whitespace-nowrap text-foreground/60 outline-hidden select-none before:inset-x-0 before:inset-y-1 before:rounded-xs before:-outline-offset-1 before:outline-blue-800 hover:text-foreground hover:data-active:text-orange-100 dark:hover:data-active:text-background focus-visible:relative focus-visible:before:absolute focus-visible:before:outline-2 data-active:text-background ${index === 0 ? 'first:ml-1' : ''}`}
             value={tab.value}>
             {tab.label}
           </Root.Tab>

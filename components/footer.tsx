@@ -72,26 +72,30 @@ export const FooterSection = () => {
   return (
     <section ref={sectionRef} id='footer' className='relative pt-2 pl-6 md:pl-8 lg:ml-54 max-w-7xl'>
       {/* Section header */}
-      <Header title='Footer' tag='QUICK LINKS' id='+' ref={headerRef} />
+      <Header title='re-up' tag='QUICK LINKS' id='+' ref={headerRef} />
 
       {/* Multi-column layout */}
-      <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-3 gap-8 pb-8'>
+      <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-4 gap-4 pb-8'>
         {/* Payment Methods */}
         <div className='col-span-1'>
-          <ColumnHeader title='API' />
-          <ColumnItems items={[{ id: 'cards', name: 'Get API Keys' }]} />
+          <ColumnHeader title='Fund' />
+          <ColumnItems items={[{ id: 'fund', name: 'Fund Account' }]} />
         </div>
 
         {/* Alternative Rails */}
         <div className='col-span-1'>
-          <ColumnHeader title='DOCS' />
-          <ColumnItems items={[{ id: 'cards', name: 'Get Started' }]} />
+          <ColumnHeader title='Transfer' />
+          <ColumnItems items={[{ id: 'transfer', name: 'Transfer Funds' }]} />
         </div>
 
         {/* Connectivity */}
         <div className='col-span-1'>
-          <ColumnHeader title='HELP' />
-          <ColumnItems items={[{ id: 'multi-chain', name: 'Support' }]} />
+          <ColumnHeader title='Stake' />
+          <ColumnItems items={[{ id: 'stake', name: 'Stake Assets' }]} />
+        </div>
+        <div className='col-span-1'>
+          <ColumnHeader title='Bets' />
+          <ColumnItems items={[{ id: 'high-risk', name: 'High Gain' }]} />
         </div>
       </div>
 
@@ -100,7 +104,7 @@ export const FooterSection = () => {
         ref={footerRef}
         className='mt-2 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
         <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>
-          © 2026 c-layer. All rights reserved.
+          © 2026 re-up.ph. All rights reserved.
         </p>
         <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>Scale Fast</p>
       </div>

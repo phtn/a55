@@ -130,15 +130,17 @@ export const SimpleTable = ({ title, data }: SimpleTableProps) => {
 
   return (
     <section className='min-w-0 overflow-hidden rounded border border-border bg-background'>
-      <div className='border-b border-border bg-muted/40 px-3 py-2'>
-        <h3 className='font-mono text-[11px] font-semibold uppercase tracking-wider text-foreground/70'>{title}</h3>
+      <div className='border-b border-border bg-muted px-3 py-2'>
+        <h3 className='font-display text-base font-semibold uppercase tracking-wider text-foreground/70'>{title}</h3>
       </div>
       <div className='overflow-hidden'>
         <Table>
           <TableBody className=''>
             {rows.map((item) => (
-              <TableRow key={item.key} className='*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r'>
-                <TableCell className='w-1/2 bg-muted/30 px-3 py-2 align-top text-xs font-medium whitespace-normal text-foreground/70'>
+              <TableRow
+                key={item.key}
+                className='*:border-border hover:bg-transparent [&>:not(:last-child)]:border-r-[0.5px]'>
+                <TableCell className='w-1/2 bg-muted/50 px-3 py-2 align-top font-display font-medium text-foreground/70 text-xs whitespace-normal'>
                   {formatKey(item.key)}
                 </TableCell>
                 <TableCell className='px-3 py-2 align-top font-mono text-xs whitespace-normal wrap-break-word text-foreground'>
