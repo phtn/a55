@@ -33,7 +33,7 @@ export const Tabs = ({ tabs }: TabsProps) => {
           </Root.Tab>
         ))}
 
-        <Root.Indicator className='absolute top-1/2 left-0 z-[-1] h-6 w-(--active-tab-width) translate-x-(--active-tab-left) -translate-y-1/2 rounded-xs bg-gray-100 transition-all duration-200 ease-in-out' />
+        <Root.Indicator className='absolute top-1/2 left-0 z-[-1] h-6 w-(--active-tab-width) translate-x-(--active-tab-left) -translate-y-1/2 rounded-xs bg-foreground/90 transition-all duration-200 ease-in-out' />
       </Root.List>
       <section className='min-h-64 mt-4'>
         {tabs.map((tab) => (
