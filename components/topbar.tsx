@@ -84,8 +84,8 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
         <div className='flex w-full items-center justify-between'>
           <div className='min-w-0 h-5.5 flex-4 flex items-start space-x-1 md:space-x-1.5'>
             <div className='flex items-center justify-center size-5 aspect-square bg-radial from-background'>
-              {true ? (
-                <Icon name='aapl' className='size-4 md:size-4.5 text-foreground/70' />
+              {title ? (
+                <Icon name='aapl' className='size-4.5 text-foreground/70' />
               ) : (
                 <PixelGrid
                   animation='snake'
@@ -99,7 +99,7 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
               text={pageTitle}
               showCursor={false}
               speed={22}
-              className='truncate font-display text-[11px] md:text-[1.4rem] font-semibold text-foreground/70 sm:text-[0.94rem] tracking-[0.02em]'></Typewrite>
+              className='truncate font-display text-[1rem] font-semibold text-foreground/70 tracking-[0.02em]'></Typewrite>
           </div>
 
           <div className='min-w-1/10 flex items-center px-2'>

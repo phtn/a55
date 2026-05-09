@@ -1017,10 +1017,10 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               </p>
             )}
             {analystRecommendation && (
-              <p className='md:hidden flex items-center justify-end space-x-1 font-display font-medium text-foreground text-[8px] uppercase tracking-widest'>
+              <div className='md:hidden flex items-center justify-end space-x-1 font-display font-medium text-foreground text-[8px] uppercase tracking-widest'>
                 <Icon name='arrow-right' className='size-3' />
                 <span>{formatRecommendation(analystRecommendation)}</span>
-              </p>
+              </div>
             )}
           </div>
         </div>
@@ -1067,7 +1067,9 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
       {status === 'ready' && data && (
         <>
           <div data-animate='hero-card' className='grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.9fr)_22rem]'>
-            <div data-animate='hero-shell' className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-0 md:p-5'>
+            <div
+              data-animate='hero-shell'
+              className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-0 md:p-5'>
               <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                 <div data-animate='hero-value' className='space-y-1'>
                   {/*<p className='font-display text-foreground text-[8px] uppercase tracking-[0.24em]'>
@@ -1088,7 +1090,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                 </div>
 
                 <div data-animate='hero-value' className='hidden md:flex text-left sm:text-right'>
-                  <p className='hidden md:flex text-foreground/70 text-[8px] uppercase tracking-[0.18em]'>Showing</p>
+                  {/*<p className='hidden md:flex text-foreground/70 text-[8px] uppercase tracking-[0.18em]'>Showing</p>*/}
                   <p className='mt-2 text-sm text-foreground/60'>
                     {chartData.length} of {history.length.toLocaleString()} price points
                   </p>
@@ -1200,19 +1202,19 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                       {item.fiscalQuarter || item.date}
                     </p>
                     <div className='mt-2 space-y-1 font-display text-foreground/80 text-sm'>
-                      <p className='w-32 flex items-center justify-between'>
+                      <p className='w-40 flex items-center justify-between'>
                         <span>Revenue</span>
                         <span className='font-medium text-foreground'>
                           {formatNullableCompactCurrency(toNumber(item.revenue), financialCurrencyCode)}
                         </span>
                       </p>
-                      <p className='w-32 flex items-center justify-between'>
+                      <p className='w-40 flex items-center justify-between'>
                         <span>Earnings</span>
                         <span className='font-medium text-foreground'>
                           {formatNullableCompactCurrency(toNumber(item.earnings), financialCurrencyCode)}
                         </span>
                       </p>
-                      <p className='w-32 flex items-center justify-between'>
+                      <p className='w-40 flex items-center justify-between'>
                         <span>Margin</span>
                         <span className='font-medium text-foreground'>
                           {formatNullableRatioPercent(toNumber(item.profitMargin))}
@@ -1266,14 +1268,12 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
 
               {profileParagraphs.length > 0 && (
                 <div className='space-y-4 px-2 text-base leading-7 text-foreground/70 font-display'>
-                  {profileParagraphs.map((paragraph, index) => (
-                    <p
-                      key={`${index}-${paragraph.slice(0, 24)}`}
-                      data-animate='profile-block'
-                      className=' text-balance'>
+                  <p className='text-justify'>{profileParagraphs.slice().join('')}</p>
+                  {/*{profileParagraphs.map((paragraph, index) => (
+                    <p key={`${index}-${paragraph.slice(0, 24)}`} data-animate='profile-block' className='text-balance'>
                       {paragraph}
                     </p>
-                  ))}
+                  ))}*/}
                 </div>
               )}
 

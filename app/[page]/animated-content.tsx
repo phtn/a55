@@ -4,8 +4,8 @@ import { Content } from '@/app/content'
 import { Page } from '@/types/dashboard'
 import gsap from 'gsap'
 import { useEffect, useRef } from 'react'
+import { BetsPage } from './bets-page'
 import { Explore } from './explore'
-import { IconsPage } from './icons-page'
 import { Markets } from './markets'
 
 interface AnimatedContentProps {
@@ -54,10 +54,10 @@ export const AnimatedContent = ({ page }: AnimatedContentProps) => {
       return <Markets />
     case 'explore':
       return <Explore />
-    case 'icons':
+    case 'bets':
       return (
         <div ref={rootRef}>
-          <IconsPage />
+          <BetsPage />
         </div>
       )
     default:

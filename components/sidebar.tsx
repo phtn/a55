@@ -1,6 +1,6 @@
 'use client'
-import { Icon, IconName } from '@/lib/icons'
 import { preloadExploreData } from '@/lib/explore-data'
+import { Icon, IconName } from '@/lib/icons'
 import { preloadMarketsData } from '@/lib/markets-data'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -12,7 +12,7 @@ const navItems: { icon: IconName; label: string; path: string }[] = [
   { icon: 'theme', label: 'Overview', path: '/' },
   { icon: 'cf-pen', label: 'Markets', path: '/markets' },
   { icon: 'arrow-right', label: 'Explore', path: '/explore' },
-  { icon: 'information', label: 'Icons', path: '/icons' }
+  { icon: 'information', label: 'Bets', path: '/bets' }
 ]
 
 export const Sidebar = () => {
