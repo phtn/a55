@@ -1,40 +1,12 @@
 'use client'
 import { Icon } from '@/lib/icons'
+import { getPathnamePageTitle } from '@/lib/page-titles'
 import { usePathname, useRouter } from 'next/navigation'
 import { SubmitEvent, useState } from 'react'
 import { PixelGrid } from 'three-px-react'
 import { usePageTitle } from './page-title-provider'
 import { Typewrite } from './text/typewriter'
 import { useTheme } from './theme-provider'
-
-const PAGE_TITLES: Record<string, string> = {
-  '/': 'Overview',
-  '/explore': 'Find Stocks',
-  '/icons': 'Icons',
-  '/markets': 'Global',
-  '/watchlist': 'Watchlist'
-}
-
-const formatSegment = (segment: string) =>
-  segment
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-
-const getPageTitle = (pathname: string) => {
-  if (PAGE_TITLES[pathname]) {
-    return PAGE_TITLES[pathname]
-  }
-
-  const segments = pathname.split('/').filter(Boolean)
-
-  if (segments[0] === 'company' && segments[1]) {
-    return segments[1].toUpperCase()
-  }
-
-  return segments.length > 0 ? formatSegment(segments[segments.length - 1]) : PAGE_TITLES['/']
-}
 
 const normalizeWebsiteUrl = (website: string) => {
   if (/^https?:\/\//i.test(website)) {
@@ -65,7 +37,7 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
   const pathname = usePathname()
   const { title, website } = usePageTitle()
   const { resolvedTheme } = useTheme()
-  const pageTitle = title ?? getPageTitle(pathname ?? '')
+  const pageTitle = title ?? getPathnamePageTitle(pathname ?? '')
   const companyWebsite = companyWebsiteProp ?? website
   const companyWebsiteHref = companyWebsite ? normalizeWebsiteUrl(companyWebsite) : null
   const companyWebsiteLabel = companyWebsite ? getWebsiteLabel(companyWebsite) : null
