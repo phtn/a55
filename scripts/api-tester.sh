@@ -1,4 +1,8 @@
-curl -fSsX POST 'http://192.168.1.40:3001/api/bets/r1' \
+P_BASE_URL=https://ftsb.vercel.app
+D_BASE_URL=http://localhost:3000
+# Use P_BASE_URL for production, D_BASE_URL for development
+# how do i pass the base URL to curl?
+curl -fSsX POST "$P_BASE_URL/api/bets/r1" \
   -H 'Authorization: Bearer token' \
   -H 'Content-Type: application/json' \
   -d '{"web-app": {

@@ -2,6 +2,7 @@
 
 import { JsonViewer } from '@/components/data/json-viewer'
 import { useApi } from '@/hooks/use-api'
+import { useToggle } from '@/hooks/use-toggle'
 
 interface BetsResponse {
   success: boolean
@@ -12,6 +13,7 @@ interface BetsResponse {
 }
 
 export const BetsPage = () => {
+  const { on: showToolbar, toggle: toggleToolbar } = useToggle()
   const {
     data: bets,
     error,
@@ -32,7 +34,12 @@ export const BetsPage = () => {
       {!isLoading && !error && !bets?.hasData ? (
         <div className='text-sm text-zinc-500'>No bets received yet.</div>
       ) : null}
-      <JsonViewer data={payload} maxHeight='max-h-300' />
+
+      <JsonViewer data={payload} maxHeight='max-h-300' withToolbar={showToolbar}>
+        <button onClick={toggleToolbar} className='text-sm mr-4'>
+          tools
+        </button>
+      </JsonViewer>
     </main>
   )
 }

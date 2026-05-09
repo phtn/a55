@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 
 type JsonValue = string | number | boolean | null | JsonObject | JsonArray
 type JsonObject = { [key: string]: JsonValue }
@@ -10,11 +10,12 @@ interface JsonViewerProps {
   data: unknown
   maxHeight?: string
   withToolbar?: boolean
+  children?: ReactNode
 }
 
 type ViewMode = 'tree' | 'raw'
 
-export const JsonViewer = ({ data, maxHeight = 'max-h-96', withToolbar = false }: JsonViewerProps) => {
+export const JsonViewer = ({ data, maxHeight = 'max-h-96', withToolbar = false, children }: JsonViewerProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>('tree')
   // Expand root level by default
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(['']))
@@ -293,8 +294,8 @@ export const JsonViewer = ({ data, maxHeight = 'max-h-96', withToolbar = false }
         <div className='flex items-center justify-end'>
           <button
             onClick={handleCopy}
-            className='text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors'>
-            Copy
+            className='font-mono text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors'>
+            copy
           </button>
         </div>
         <div
@@ -310,36 +311,38 @@ export const JsonViewer = ({ data, maxHeight = 'max-h-96', withToolbar = false }
   return (
     <div className='space-y-2'>
       {/* Toolbar */}
-      {withToolbar && (
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1'>
+      <div className='flex items-center space-x-2 h-10 px-1'>
+        {children}
+        {withToolbar && (
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1'>
+              <button
+                onClick={() => setViewMode('tree')}
+                className={`px-3 py-1 text-xs font-mono rounded transition-all ${
+                  viewMode === 'tree'
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }`}>
+                tree
+              </button>
+              <button
+                onClick={() => setViewMode('raw')}
+                className={`px-3 py-1 text-xs font-mono rounded transition-all ${
+                  viewMode === 'raw'
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }`}>
+                raw
+              </button>
+            </div>
             <button
-              onClick={() => setViewMode('tree')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-                viewMode === 'tree'
-                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-              }`}>
-              Tree
-            </button>
-            <button
-              onClick={() => setViewMode('raw')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-all ${
-                viewMode === 'raw'
-                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-              }`}>
-              Raw
+              onClick={handleCopy}
+              className='font-mono text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors'>
+              copy
             </button>
           </div>
-          <button
-            onClick={handleCopy}
-            className='text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors'>
-            Copy
-          </button>
-        </div>
-      )}
-
+        )}
+      </div>
       {/* Content */}
       <div
         className={`p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded overflow-auto ${maxHeight}`}>
