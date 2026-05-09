@@ -26,7 +26,8 @@ const positions = [
   { x: 0, y: -80 },
   { x: 0, y: -160 },
   { x: 0, y: -240 },
-  { x: 0, y: -320 }
+  { x: 0, y: -320 },
+  { x: 0, y: -400 }
 ]
 
 export const Fab = () => {
