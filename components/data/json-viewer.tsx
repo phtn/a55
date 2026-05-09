@@ -88,7 +88,7 @@ export const JsonViewer = ({ data, maxHeight = 'max-h-96', withToolbar = false, 
     if (typeof value === 'string') {
       const displayValue = value.length > 100 ? `${value.substring(0, 100)}...` : value
       return (
-        <span className='text-green-600 dark:text-green-400'>
+        <span className='text-orange-500 dark:text-orange-300'>
           &quot;<span className='wrap-break-words'>{displayValue}</span>&quot;
         </span>
       )

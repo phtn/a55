@@ -82,7 +82,7 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
     <header className='sticky top-0 z-50 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70'>
       <div className='flex items-center justify-between h-16 border-b-[0.5px] border-border border-dotted gap-4 px-4 md:px-4 sm:gap-6 sm:px-8'>
         <div className='flex w-full items-center justify-between'>
-          <div className='min-w-0 h-5.5 flex-4 flex items-start space-x-1 md:space-x-1.5'>
+          <div className='min-w-0 h-6 flex-4 flex items-center space-x-1 md:space-x-1.5'>
             <div className='flex items-center justify-center size-5 aspect-square bg-radial from-background'>
               {title ? (
                 <Icon name='aapl' className='size-4.5 text-foreground/70' />
@@ -90,7 +90,8 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
                 <PixelGrid
                   animation='snake'
                   color={resolvedTheme === 'dark' ? '#f5f5f5' : '#CCC'}
-                  className='scale-82'
+                  className='md:scale-82 scale-85'
+                  duration={1200}
                 />
               )}
             </div>
