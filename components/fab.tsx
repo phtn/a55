@@ -17,7 +17,7 @@ interface MenuItem {
 const navItems: MenuItem[] = [
   { icon: 'arrow-right', label: 'Overview', path: '/', color: 'hsl(187,90%,51%)' },
   { icon: 'arrow-right', label: 'Explore', path: '/explore', color: 'hsl(280,65%,60%)' },
-  { icon: 'arrow-right', label: 'Watchlist', path: '/watchlist', color: 'hsl(38,92%,55%)' },
+  // { icon: 'arrow-right', label: 'Watchlist', path: '/watchlist', color: 'hsl(38,92%,55%)' },
   { icon: 'arrow-right', label: 'Markets', path: '/markets', color: 'hsl(160,70%,45%)' },
   { icon: 'arrow-right', label: 'Bets', path: '/bets', color: '#ccc' }
 ]
@@ -26,8 +26,7 @@ const positions = [
   { x: 0, y: -80 },
   { x: 0, y: -160 },
   { x: 0, y: -240 },
-  { x: 0, y: -320 },
-  { x: 0, y: -400 }
+  { x: 0, y: -320 }
 ]
 
 export const Fab = () => {

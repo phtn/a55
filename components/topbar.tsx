@@ -7,6 +7,7 @@ import { PixelGrid } from 'three-px-react'
 import { usePageTitle } from './page-title-provider'
 import { Typewrite } from './text/typewriter'
 import { useTheme } from './theme-provider'
+import { ThemeToggle } from './theme-toggle'
 
 const normalizeWebsiteUrl = (website: string) => {
   if (/^https?:\/\//i.test(website)) {
@@ -91,7 +92,10 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
           <div className='h-6 w-6 md:w-36 flex items-center justify-center space-x-4'>
             <Icon name='two-way' className='size-5 hidden text-foreground/70' />
             <Icon name='folder' className='size-5 hidden text-foreground/70' />
-            <Icon name='book-open' className='size-5 text-foreground/70' />
+            <Icon name='book-open' className='size-5 hidden text-foreground/70' />
+            <div className='md:hidden flex'>
+              <ThemeToggle />
+            </div>
           </div>
           <form onSubmit={handleSearch} className='hidden w-full md:flex flex-1 pl-4'>
             <input
