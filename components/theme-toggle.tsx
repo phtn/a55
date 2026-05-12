@@ -111,7 +111,7 @@ export const ThemeToggle = () => {
       aria-label={`Switch theme from ${themeLabels[theme]} to ${themeLabels[nextTheme]}`}
       suppressHydrationWarning
       title={`Theme: ${themeLabels[theme]}. Next: ${themeLabels[nextTheme]}`}
-      className='inline-flex h-8 items-center rounded-full group cursor-pointer'
+      className='inline-flex h-8 aspect-square items-center justify-center rounded-full group cursor-pointer'
       onClick={handleThemeChange}>
       <Icon
         name='theme'

@@ -4,6 +4,7 @@ import { Stock, type StockCardData } from '@/components/cards/stock'
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
 import { useOverviewPrefetch } from '@/components/overview-prefetch-provider'
+import { Eyebrow } from '@/components/ui/eyebrow'
 import { Icon } from '@/lib/icons'
 import gsap from 'gsap'
 import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -672,7 +673,7 @@ export const Content = ({ page }: ContentProps) => {
     return (
       <div className='w-full max-w-4xl space-y-4'>
         <p className='text-sm font-mono text-muted-foreground'>Watchlist is not wired yet.</p>
-        <div className='rounded-2xl border border-border/50 bg-muted/20 p-6'>
+        <div className='rounded-2xl border border-border/50 bg-muted/20 p-4'>
           <PixelGrid animation='checkerboard' color='#AAAAAA' duration={1800} className='h-12 w-12' />
           <p className='mt-4 max-w-md text-sm leading-6 text-muted-foreground'>
             The overview page is now using live Yahoo Finance data. Watchlist can be wired next once you decide whether
@@ -688,18 +689,21 @@ export const Content = ({ page }: ContentProps) => {
   return (
     <div ref={rootRef} className='relative w-full max-w-7xl space-y-8'>
       <div className='hidden md:flex absolute right-1/3 -top-1'>
-        <div className='flex items-center p-3 w-16 mr-4 h-10'>
-          <button
-            type='button'
-            onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
-            className='inline-flex size-10 aspect-square items-center justify-center rounded-full border border-transparent hover:border-border hover:bg-border/50 hover:text-foreground text-foreground/40 text-xs font-mono transition-colors _hover:bg-muted/40'>
-            <Icon name={quoteStatus === 'loading' ? 'spinner-ring' : 'refresh'} className='size-5 rotate-120' />
-          </button>
+        <div className='flex items-center p-2 w-16 mr-4 h-10'>
+          {quoteStatus === 'ready' && (
+            <button
+              type='button'
+              onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
+              disabled={!activeQuote}
+              className='inline-flex size-9 aspect-square items-center justify-center rounded-full hover:bg-border/50 hover:text-foreground text-foreground/40 transition-colors'>
+              <Icon name='refresh' className='size-5 rotate-120' />
+            </button>
+          )}
         </div>
       </div>
 
       {quoteStatus === 'loading' && (
-        <div className='rounded-xl border border-border/50 bg-background/70 p-1 md:p-5'>
+        <div className='rounded-xl border border-border/50 bg-background/70 p-1 md:px-4 md:py-2'>
           <div className='flex items-center justify-between gap-4'>
             <div className='space-y-2'>
               <div className='h-3 w-28 rounded-full bg-muted/60' />
@@ -800,33 +804,33 @@ export const Content = ({ page }: ContentProps) => {
               </div>
             </div>
 
-            <div data-overview-quote-panel className=''>
+            <div data-overview-quote-panel className='-mt-2'>
               <div className='grid grid-cols-2 gap-2'>
                 <div className='rounded-xl bg-background/80 p-3'>
-                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Previous</p>
+                  <Eyebrow>Previous</Eyebrow>
                   <p className='mt-2 font-display font-medium text-foreground text-sm'>
                     {formatPriceValue(activeQuote.previousClose, activeQuote.currency)}
                   </p>
                 </div>
                 <div className='rounded-xl bg-border/8 p-3'>
-                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Change</p>
+                  <Eyebrow>Change</Eyebrow>
                   <p className='mt-2 font-display font-medium text-foreground text-sm'>
                     {formatPriceValue(activeQuote.change, activeQuote.currency)}
                   </p>
                 </div>
                 <div className='rounded-xl  bg-border/8 p-3'>
-                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Source</p>
+                  <Eyebrow>Source</Eyebrow>
                   <p className='mt-2 font-display font-medium text-foreground text-sm'>{activeQuote.latestSource}</p>
                 </div>
                 <div className='rounded-xl bg-border/8 p-3'>
-                  <p className='text-[8px] uppercase tracking-[0.18em] text-muted-foreground'>Updated</p>
-                  <p className='mt-2 text-sm font-medium text-foreground'>
+                  <Eyebrow>Updated</Eyebrow>
+                  <p className='mt-2 font-display font-medium text-foreground text-sm'>
                     {formatUpdateTime(activeQuote.latestUpdate)}
                   </p>
                 </div>
               </div>
 
-              <div data-overview-etf-actions className='mt-4 space-y-2'>
+              <div data-overview-etf-actions className='mt-4 space-y-4'>
                 <div className='flex items-center justify-between gap-3 font-display'>
                   <p className='text-muted-foreground text-[10px] uppercase tracking-wide'>ETFs</p>
                   <a
@@ -835,17 +839,17 @@ export const Content = ({ page }: ContentProps) => {
                     rel='noreferrer'
                     className='flex items-center space-x-1 text-primary text-xs transition-colors hover:text-foreground'>
                     <span>Yahoo Finance</span>
-                    <Icon name='arrow-right' className='size-3.5 -rotate-25' />
+                    <Icon name='arrow-right' className='size-3 -rotate-23' />
                   </a>
                 </div>
-                <div className='flex flex-wrap gap-2'>
+                <div className='grid grid-cols-4 gap-2'>
                   {quotes.map((quote) => (
                     <button
                       key={quote.symbol}
                       type='button'
                       aria-pressed={activeQuote.symbol === quote.symbol}
                       onClick={() => setActiveSymbol(quote.symbol)}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                      className={`rounded-md border px-3 py-1.5 text-xs transition-colors font-display font-medium ${
                         activeQuote.symbol === quote.symbol
                           ? 'border-y/30 bg-primary/e0 text-primary'
                           : 'border-border/50 bg-background/80 text-muted-foreground hover:text-foreground'

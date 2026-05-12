@@ -2,6 +2,7 @@
 import { preloadExploreData } from '@/lib/explore-data'
 import { Icon, IconName } from '@/lib/icons'
 import { preloadMarketsData } from '@/lib/markets-data'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
@@ -49,9 +50,9 @@ export const Sidebar = () => {
       <div className='h-16 flex items-center justify-center border-b-[0.5px] border-dotted border-border'>
         <div className='flex items-center justify-start space-x-4 px-6 h-16 w-full'>
           <Icon name='re-up.ph' className='size-4' />
-          {/*<h2 className='font-display font-medium text-foreground text-base whitespace-nowrap leading-0 tracking-tight'>
-            Web Technologies
-          </h2>*/}
+          <h2 className='font-display font-medium text-foreground text-base whitespace-nowrap leading-0 tracking-tight'>
+            WebTech
+          </h2>
         </div>
       </div>
 
@@ -64,19 +65,16 @@ export const Sidebar = () => {
               key={path}
               href={path}
               prefetch='auto'
-              className={`relative flex items-center gap-3 px-6 h-10 group
-                ${
-                  isActive
-                    ? 'text-primary bg-primary/6 hover:bg-primary/8'
-                    : 'text-foreground/80 hover:text-foreground hover:bg-foreground/4'
-                }`}>
+              className={cn(
+                'relative flex items-center gap-3 px-6 h-16 group text-foreground/80 hover:text-foreground hover:bg-foreground/4',
+                { 'text-primary bg-primary/6 hover:bg-primary/8': isActive }
+              )}>
               {isActive && (
-                <div
-                  className='absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-5 bg-primary rounded-r-full'
-                  // transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                />
+                <div className='absolute left-0 top-1/2 -translate-y-1/2 w-0.75 h-5 bg-primary rounded-r-full' />
               )}
-              <span className='hidden lg:block font-display font-medium tracking-wider text-sm'>{label}</span>
+              <h2 className='font-display font-medium text-foreground text-base whitespace-nowrap leading-0 tracking-tight'>
+                {label}
+              </h2>
             </Link>
           )
         })}

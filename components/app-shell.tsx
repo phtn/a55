@@ -16,7 +16,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           <div className='lg:ml-54'>
             <TopBar />
-            <main className='p-4 md:p-8 pb-28 lg:pb-16'>{children}</main>
+            <main className='px-4 py-2 md:p-8 pb-28 lg:pb-16'>{children}</main>
           </div>
 
           <div className='lg:hidden'>

@@ -71,18 +71,18 @@ export const Fab = () => {
       {navItems.map((item, index) => {
         const isActive = pathname === item.path
         const pos = positions[index]
-        const delay = open ? index * 45 : (navItems.length - 1 - index) * 30
+        const delay = open ? index * 15 : (navItems.length - 1 - index) * 45
 
         return (
           <div
             key={item.path}
-            className={`fixed bottom-8 right-8 z-50 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`fixed bottom-8 right-8 z-50 transition-[transform,opacity] duration-300 ease-in-out _[cubic-bezier(0.22,1,0.36,1)] ${
               open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
             }`}
             style={{
               transform: open
                 ? `translate3d(${pos.x}px, ${pos.y}px, 0) scale(1)`
-                : 'translate3d(0px, 0px, 0) scale(0.92)',
+                : 'translate3d(0px, 0px, 0) scale(0.82)',
               transitionDelay: `${delay}ms`
             }}>
             <Link

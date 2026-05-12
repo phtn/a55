@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon } from '@/lib/icons'
+import { LogoNameType } from '@/lib/icons/logos'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { EvilAreaChart } from '../evilcharts/charts/area-chart'
@@ -58,7 +59,7 @@ export const Stock = ({ stock, activeStock, setActiveSymbol, isPositive }: Stock
           activeStock?.symbol === stock.symbol ? 'ring-1 ring-foreground/25 bg-foreground/1.5' : ''
         }`}>
         <div className='w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors'>
-          <Icon name='aapl' className='size-7 text-foreground/70' />
+          <Icon name={stock.symbol.toLowerCase() as LogoNameType} className='size-7 text-foreground/70' />
         </div>
 
         <div className='flex-1 min-w-0'>
