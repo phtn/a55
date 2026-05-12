@@ -1,211 +1,49 @@
 'use client'
 
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
-import type { ChartConfig } from '@/components/evilcharts/ui/chart'
 import { usePageTitle } from '@/components/page-title-provider'
 import { Eyebrow } from '@/components/ui/eyebrow'
 import { Title } from '@/components/ui/title'
+import {
+  formatCurrency,
+  formatDateLabel,
+  formatNullableCompactCurrency,
+  formatNullableCompactNumber,
+  formatNullableCurrency,
+  formatNullableDate,
+  formatNullableRatioPercent,
+  formatPercentValue,
+  getCompanyNameFromData,
+  getGrokQueryFromData,
+  getHistoryStart,
+  getPriceChartConfig,
+  normalizeCompanySymbol,
+  toNumber
+} from '@/lib/helpers/formatters'
 import { Icon } from '@/lib/icons'
 import gsap from 'gsap'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { StockHeader } from './stock-header'
+import {
+  AsyncStatus,
+  CompanyChartApiData,
+  CompanyPageData,
+  CompanyPriceClientProps,
+  CompanyQuoteApi,
+  CompanyRecommendationsApi,
+  CompanySummaryApi,
+  FinancialMetric,
+  GrokCacheEntry,
+  GrokProfileApiResponse,
+  OptionalAsyncStatus,
+  PriceHistoryPoint,
+  Yf2RequestBody,
+  Yf2Response
+} from './types'
 
-const POSITIVE_CHART_COLOR = 'var(--foreground)'
-const NEGATIVE_CHART_COLOR = 'var(--muted-foreground)'
-const DEFAULT_CURRENCY_CODE = 'USD'
-const HISTORY_LOOKBACK_DAYS = 400
 const RECENT_PRICE_POINTS = 252
-
-type AsyncStatus = 'loading' | 'ready' | 'error'
-
-type OptionalAsyncStatus = AsyncStatus | 'idle'
-
-type PriceHistoryPoint = {
-  date: string
-  label: string
-  close: number
-  volume: number
-}
-
-interface Yf2Response<T> {
-  operation: string
-  data: T
-}
-
-interface Yf2RequestBody {
-  operation: string
-  symbol: string
-  options?: Record<string, unknown>
-}
-
-interface CompanyQuoteApi {
-  symbol: string
-  currency?: string
-  shortName?: string
-  longName?: string
-  quoteType?: string
-  fullExchangeName?: string
-  quoteSourceName?: string
-  regularMarketPrice?: number
-  regularMarketPreviousClose?: number
-  regularMarketChange?: number
-  regularMarketChangePercent?: number
-  regularMarketTime?: string
-  regularMarketVolume?: number
-  marketCap?: number
-}
-
-interface CompanyChartApiQuote {
-  date: string
-  close: number | null
-  volume: number | null
-}
-
-interface CompanyChartApiData {
-  meta: {
-    symbol: string
-    currency?: string
-    shortName?: string
-    longName?: string
-    fullExchangeName?: string
-    regularMarketPrice?: number
-    regularMarketTime?: string
-    previousClose?: number
-    fiftyTwoWeekHigh?: number
-    fiftyTwoWeekLow?: number
-  }
-  quotes: CompanyChartApiQuote[]
-}
-
-interface CompanySummaryPrice {
-  marketState?: string
-  quoteSourceName?: string
-  quoteType?: string
-  regularMarketTime?: string
-  regularMarketOpen?: number
-  regularMarketDayHigh?: number
-  regularMarketDayLow?: number
-  regularMarketVolume?: number
-  averageDailyVolume10Day?: number
-  averageDailyVolume3Month?: number
-  marketCap?: number
-  currency?: string
-}
-
-interface CompanySummaryDetail {
-  beta?: number
-  trailingPE?: number
-  forwardPE?: number
-  dividendYield?: number
-  exDividendDate?: string
-  fiftyDayAverage?: number
-  twoHundredDayAverage?: number
-  fiftyTwoWeekLow?: number
-  fiftyTwoWeekHigh?: number
-  regularMarketPreviousClose?: number
-}
-
-interface CompanyDefaultKeyStatistics {
-  enterpriseValue?: number
-  sharesOutstanding?: number
-  priceToBook?: number
-  trailingEps?: number
-  forwardEps?: number
-  enterpriseToRevenue?: number
-  enterpriseToEbitda?: number
-  lastFiscalYearEnd?: string
-  mostRecentQuarter?: string
-}
-
-interface CompanyFinancialData {
-  currentPrice?: number
-  targetMeanPrice?: number
-  recommendationKey?: string
-  numberOfAnalystOpinions?: number
-  totalCash?: number
-  totalDebt?: number
-  totalRevenue?: number
-  ebitda?: number
-  operatingCashflow?: number
-  freeCashflow?: number
-  revenueGrowth?: number
-  earningsGrowth?: number
-  grossMargins?: number
-  operatingMargins?: number
-  profitMargins?: number
-  returnOnAssets?: number
-  returnOnEquity?: number
-  financialCurrency?: string | null
-}
-
-interface CompanyAssetProfile {
-  sector?: string
-  industry?: string
-  website?: string
-  fullTimeEmployees?: number
-  longBusinessSummary?: string
-}
-
-interface CompanyEarningsItem {
-  date: string
-  fiscalQuarter?: string
-  revenue?: number
-  earnings?: number
-  profitMargin?: number
-}
-
-interface CompanyEarningsSummary {
-  financialsChart?: {
-    quarterly?: CompanyEarningsItem[]
-  }
-}
-
-interface CompanySummaryApi {
-  price?: CompanySummaryPrice
-  summaryDetail?: CompanySummaryDetail
-  defaultKeyStatistics?: CompanyDefaultKeyStatistics
-  financialData?: CompanyFinancialData
-  assetProfile?: CompanyAssetProfile
-  earnings?: CompanyEarningsSummary
-}
-
-interface CompanyRecommendationsApi {
-  symbol: string
-  recommendedSymbols: {
-    symbol: string
-    score: number
-  }[]
-}
-
-interface CompanyPageData {
-  quote: CompanyQuoteApi
-  chart: CompanyChartApiData
-  summary: CompanySummaryApi
-  recommendations: CompanyRecommendationsApi | null
-}
-
-interface GrokProfileApiData {
-  title: string | null
-  factChecked: string | null
-  leadHtml: string
-  leadText: string
-}
-
-interface GrokProfileApiResponse {
-  page: string
-  url: string
-  data: GrokProfileApiData
-}
-
-interface CompanyPriceClientProps {
-  symbol: string
-}
-
-type FinancialMetric = {
-  label: string
-  value: string
-}
 
 const EMPTY_HISTORY: PriceHistoryPoint[] = []
 const COMPANY_QUOTE_FIELDS = [
@@ -233,127 +71,10 @@ const COMPANY_SUMMARY_MODULES = [
   'earnings'
 ] as const
 
-type GrokCacheEntry = {
-  error: string | null
-  profile: GrokProfileApiResponse | null
-  status: OptionalAsyncStatus
-}
-
 const companyDataCache = new Map<string, CompanyPageData>()
 const companyDataPromiseCache = new Map<string, Promise<CompanyPageData>>()
 const grokCache = new Map<string, GrokCacheEntry>()
 const grokPromiseCache = new Map<string, Promise<GrokCacheEntry>>()
-
-const getPriceChartConfig = (label: string, positive: boolean) =>
-  ({
-    close: {
-      label,
-      colors: {
-        light: [positive ? POSITIVE_CHART_COLOR : NEGATIVE_CHART_COLOR],
-        dark: [positive ? POSITIVE_CHART_COLOR : NEGATIVE_CHART_COLOR]
-      }
-    }
-  }) satisfies ChartConfig
-
-const getHistoryStart = () => {
-  const start = new Date()
-  start.setDate(start.getDate() - HISTORY_LOOKBACK_DAYS)
-  return start.toISOString().slice(0, 10)
-}
-
-const normalizeCompanySymbol = (value: string) => value.trim().toUpperCase()
-
-const getCompanyNameFromData = (data: CompanyPageData, fallbackSymbol: string) =>
-  data.quote.longName || data.quote.shortName || data.chart.meta.longName || data.chart.meta.shortName || fallbackSymbol
-
-const getGrokQueryFromData = (data: CompanyPageData) =>
-  data.quote.longName || data.quote.shortName || data.chart.meta.longName || data.chart.meta.shortName || null
-
-const toNumber = (value: unknown) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-
-  return null
-}
-
-const formatCurrency = (value: number, currencyCode: string) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currencyCode || DEFAULT_CURRENCY_CODE,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value)
-
-const formatCompactCurrency = (value: number, currencyCode: string) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currencyCode || DEFAULT_CURRENCY_CODE,
-    notation: 'compact',
-    maximumFractionDigits: value >= 1_000_000_000 ? 2 : 1
-  }).format(value)
-
-const formatCompactNumber = (value: number) =>
-  new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: value >= 1_000_000_000 ? 2 : 1
-  }).format(value)
-
-const formatPercentValue = (value: number) => `${value >= 0 ? '' : ''}${value.toFixed(2)}%`
-
-const formatRatioPercentValue = (value: number) => `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`
-
-const formatDateLabel = (value: string) => {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-const formatDateTime = (value: string) => {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  })
-}
-
-const formatNullableCurrency = (value: number | null, currencyCode: string) =>
-  value === null ? 'N/A' : formatCurrency(value, currencyCode)
-
-const formatNullableCompactCurrency = (value: number | null, currencyCode: string) =>
-  value === null ? 'N/A' : formatCompactCurrency(value, currencyCode)
-
-const formatNullableCompactNumber = (value: number | null) => (value === null ? 'N/A' : formatCompactNumber(value))
-
-const formatNullableRatioPercent = (value: number | null) => (value === null ? 'N/A' : formatRatioPercentValue(value))
-
-const formatNullableDate = (value: string | undefined) => (value ? formatDateTime(value) : 'N/A')
-
-const formatRecommendation = (value: string | undefined) => {
-  if (!value) {
-    return ''
-  }
-
-  return value.split('_').join(' ')
-}
 
 const readApiError = async (response: Response, fallbackMessage: string) => {
   const contentType = response.headers.get('content-type') || ''
@@ -580,7 +301,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   const [grokProfile, setGrokProfile] = useState<GrokProfileApiResponse | null>(cachedInitialGrokEntry?.profile ?? null)
   const [grokStatus, setGrokStatus] = useState<OptionalAsyncStatus>(cachedInitialGrokEntry?.status ?? 'idle')
   const [grokError, setGrokError] = useState<string | null>(cachedInitialGrokEntry?.error ?? null)
-  const [requestKey, setRequestKey] = useState(0)
+  const [requestKey] = useState(0)
   const { setTitle, setWebsite } = usePageTitle()
 
   useEffect(() => {
@@ -646,7 +367,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
     data?.summary.price?.currency ||
     data?.chart.meta.currency ||
     data?.summary.financialData?.financialCurrency ||
-    DEFAULT_CURRENCY_CODE
+    'USD'
   const financialCurrencyCode = data?.summary.financialData?.financialCurrency || currencyCode
   const companyName = data ? getCompanyNameFromData(data, normalizedSymbol) : normalizedSymbol
   const companyWebsite = data?.summary.assetProfile?.website || null
@@ -987,49 +708,27 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   )
 
   return (
-    <div ref={rootRef} className='max-w-7xl space-y-24'>
-      <div className='flex itenms-center gap-16'>
+    <div ref={rootRef} className='space-y-24'>
+      <div className='flex justify-between h-[50lvh] gap-16'>
         <div data-animate='page-header' className='flex flex-col sm:flex-row sm:justify-between'>
           <div className='md:w-2xl 2xl:w-3xl'>
-            <div className='flex items-center justify-between w-full'>
-              <div data-animate='header-value'>
-                <div className='md:flex flex-wrap md:items-end gap-2 font-display'>
-                  <div>
-                    {analystRecommendation && (
-                      <div className='flex items-center space-x-px font-display text-foreground text-[8px] italic uppercase tracking-widest'>
-                        <Icon name='arrow-right' className='size-3' />
-                        <span>{formatRecommendation(analystRecommendation)}</span>
-                      </div>
-                    )}
-                    <h1 className='md:text-3xl text-2xl font-semibold tracking-tight text-foreground'>{symbol}</h1>
-                  </div>
-                </div>
-                <Eyebrow>
-                  {quoteType} on {exchangeName}
-                </Eyebrow>
-              </div>
-              <div data-animate='header-value' className='text-right'>
-                {trendPercent !== null && (
-                  <div
-                    className={`text-sm font-display flex items-center justify-end space-x-1 ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
-                    <Icon name={isPositive ? 'trending-up' : 'trending-down'} className='size-4' />
-                    <span>{formatPercentValue(trendPercent)}</span>
-                  </div>
-                )}
-                <p className='text-2xl font-display font-semibold text-foreground ticker-font'>
-                  {formatNullableCurrency(latestPrice, currencyCode)}
-                </p>
-
-                <Eyebrow>{sourceName}</Eyebrow>
-              </div>
-            </div>
-            {status === 'loading' && (
+            <StockHeader
+              analystRecommendation={analystRecommendation}
+              quoteType={quoteType}
+              exchangeName={exchangeName}
+              symbol={symbol}
+              trendPercent={trendPercent}
+              latestPrice={latestPrice}
+              isPositive={isPositive}
+              currencyCode={currencyCode}
+            />
+            <Activity mode={status === 'loading' ? 'visible' : 'hidden'}>
               <div className='rounded-2xl border border-border/50 bg-background/70 p-0 md:p-5'>
                 <div className='space-y-2'>
                   <div className='h-3 w-28 rounded-full bg-muted/60' />
                   <div className='h-8 w-40 rounded-full bg-muted/60' />
                 </div>
-                <div className='mt-4 md:h-80 h-64'>
+                <div className='mt-4 md:h-60 h-64 md:w-2xl 2xl:w-3xl'>
                   <EvilAreaChart
                     data={EMPTY_HISTORY}
                     chartConfig={getPriceChartConfig(`${symbol} close`, true)}
@@ -1037,20 +736,19 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                     yDataKey='close'
                     className='h-full w-full min-h-0'
                     isLoading
-                    loadingPoints={20}
+                    loadingPoints={5}
                     hideLegend
                     hideCartesianGrid
                   />
                 </div>
               </div>
-            )}
-
-            {status === 'error' && (
+            </Activity>
+            <Activity mode={status === 'error' ? 'visible' : 'hidden'}>
               <div className='rounded-md border border-foreground bg-foreground/2 p-2 md:p-5'>
                 <p className='font-medium text-foreground'>Failed to load Yahoo Finance company data</p>
                 <p className='mt-1 text-sm text-muted-foreground'>{error}</p>
               </div>
-            )}
+            </Activity>
 
             <div data-animate='hero-card' className='md:flex'>
               <div
@@ -1073,7 +771,6 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                   </div>
 
                   <div data-animate='hero-value' className='hidden md:flex text-left sm:text-right'>
-                    {/*<p className='hidden md:flex text-foreground/70 text-[8px] uppercase tracking-[0.18em]'>Showing</p>*/}
                     <p className='mt-2 text-sm text-foreground/60'>
                       {chartData.length} of {history.length.toLocaleString()} price points
                     </p>
@@ -1114,19 +811,10 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               </div>
             </div>
           </div>
-
-          <div data-animate='header-value' className='hidden items-center w-1/3 gap-3'>
-            <button
-              type='button'
-              onClick={() => startTransition(() => setRequestKey((value) => value + 1))}
-              className='inline-flex size-10 aspect-square items-center justify-center rounded-full border border-transparent hover:border-border hover:bg-border/50 hover:text-foreground text-foreground/40 text-xs font-mono transition-colors _hover:bg-muted/40'>
-              <Icon name={data ? 'refresh' : 'spinner-ring'} className='size-5 rotate-120' />
-            </button>
-          </div>
         </div>
 
-        <div className='-mt-2.5'>
-          <div data-animate='hero-shell' className='space-y-6'>
+        <div className='-mt-2'>
+          <div data-animate='hero-shell' className='space-y-8'>
             <div className='grid grid-cols-2 gap-2.5'>
               {stats.map((stat, index) => (
                 <div
@@ -1170,6 +858,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             </div>
           </div>
         </div>
+        <div className='bg-linear-to-b from-border/20 h-full hidden 2xl:flex 2xl:w-3xs'></div>
       </div>
 
       {status === 'ready' && data && (
@@ -1189,7 +878,6 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             </div>
 
             <div data-animate='section-heading' className='pt-16 space-y-1'>
-              {/*<Eyebrow>Recent Earnings</Eyebrow>*/}
               <Title>Quarterly Results</Title>
             </div>
 
@@ -1271,11 +959,6 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               {profileParagraphs.length > 0 && (
                 <div className='space-y-4 text-base leading-7 text-foreground/70 font-display'>
                   <p className='text-justify'>{profileParagraphs.slice().join(' ')}</p>
-                  {/*{profileParagraphs.map((paragraph, index) => (
-                    <p key={`${index}-${paragraph.slice(0, 24)}`} data-animate='profile-block' className='text-balance'>
-                      {paragraph}
-                    </p>
-                  ))}*/}
                 </div>
               )}
 
