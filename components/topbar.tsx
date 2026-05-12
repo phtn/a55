@@ -127,36 +127,38 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
 
   return (
     <header className='sticky top-0 z-50 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70'>
-      <div className='flex items-center justify-between h-16 border-b-[0.5px] border-border border-dotted gap-0'>
-        <div className='flex items-center justify-between md:w-5xl xl:w-screen 2xl:w-6xl 2xl:ml-8'>
-          <div className='h-6 flex items-center gap-4 pl-8 2xl:pl-0'>
-            <StakeHeader resolvedTheme={resolvedTheme} />
-            <Typewrite
-              id='company-name'
-              text={pageTitle}
-              showCursor={false}
-              speed={22}
-              className='truncate font-display font-medium text-foreground/90 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
-            />
+      <div className='h-16 border-b-[0.5px] border-border border-dotted'>
+        <div id='primary' className='flex h-full w-full items-center px-4 md:px-8'>
+          <div className='flex w-full max-w-6xl items-center justify-between gap-4'>
+            <div className='flex min-w-0 items-center gap-4'>
+              <StakeHeader resolvedTheme={resolvedTheme} />
+              <Typewrite
+                id='company-name'
+                text={pageTitle}
+                showCursor={false}
+                speed={22}
+                className='truncate font-display font-medium text-foreground/90 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
+              />
+            </div>
+            <div className='shrink-0'>
+              <Button
+                id='wallet-connector'
+                type='button'
+                onClick={() => {
+                  void handleWalletConnectorClick()
+                }}
+                className={cn('font-display text-sm flex items-center gap-2 rounded-md', {
+                  'tracking-wider': isWalletConnected
+                })}>
+                {isWalletConnected && <span className='size-2 rounded-full bg-background' aria-hidden />}
+                <span>{walletButtonLabel}</span>
+                <Activity mode={isWalletConnected ? 'hidden' : 'visible'}>
+                  <Icon name='two-way' />
+                </Activity>
+              </Button>
+            </div>
+            {/*<StreetToolbar />*/}
           </div>
-          <div className='xl:px-8 2xl:px-0'>
-            <Button
-              id='wallet-connector'
-              type='button'
-              onClick={() => {
-                void handleWalletConnectorClick()
-              }}
-              className={cn('font-display text-sm flex items-center gap-2 rounded-md', {
-                ' tracking-wider': isWalletConnected
-              })}>
-              {isWalletConnected && <span className='size-2 rounded-full bg-emerald-400' aria-hidden />}
-              <span>{walletButtonLabel}</span>
-              <Activity mode={isWalletConnected ? 'hidden' : 'visible'}>
-                <Icon name='two-way' />
-              </Activity>
-            </Button>
-          </div>
-          {/*<StreetToolbar />*/}
         </div>
       </div>
     </header>

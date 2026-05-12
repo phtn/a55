@@ -88,13 +88,6 @@ export function HeroSection() {
         signInError={signInError}
       />
 
-      {/* Left vertical labels */}
-      {/*<div className='absolute left-3 md:left-6 top-1/2 -translate-y-1/2'>
-        <span className='font-mono text-[6px] uppercase tracking-[0.5em] text-muted-foreground -rotate-90 origin-left block whitespace-nowrap'>
-          ⏺⏺⏺
-        </span>
-      </div>*/}
-
       <div className='fixed bottom-8 right-8 md:bottom-12 md:right-12'>
         <SignOutButton />
         <div className='border border-border px-3 py-1 font-cm text-[8px] lowercase tracking-widest text-muted-foreground'>
@@ -127,7 +120,7 @@ const Hero = ({
     <div ref={contentRef} className='flex flex-col items-center flex-1 justify-center w-full grayscale'>
       <SplitFlapAudioProvider>
         <div className='relative'>
-          <SplitFlapText text='stake*street' speed={64} size='2rem' iconName='bet69' />
+          <SplitFlapText text='stake*street' speed={64} size='2.5rem' iconName='bet69' />
           <div className='mt-4 hidden'>
             <SplitFlapMuteToggle />
           </div>
@@ -142,7 +135,6 @@ const Hero = ({
           onClick={handlePrimaryAction}
           className='group rounded-sm inline-flex w-full max-w-[20rem] h-12 items-center justify-center gap-4 px-6 py-3 font-display text-foreground text-base bg-accent transition-all duration-200 dark:bg-white dark:hover:border-accent hover:border-foreground dark:hover:bg-foreground hover:bg-foreground hover:text-white dark:hover:text-background'>
           <p>{signInLabel}</p>
-          {/*<BitmapChevron className='transition-transform duration-400 size-4 ease-in-out group-hover:rotate-45' />*/}
         </Button>
         {!isFirebaseConfigured ? (
           <p className='mt-4 font-mono text-xs uppercase tracking-[0.24em] text-foreground/40'>auth not configured.</p>

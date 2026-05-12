@@ -96,18 +96,15 @@ const previewTransactions = RECENT_TRANSACTIONS.slice(0, 4)
 
 export const Content = () => {
   return (
-    <div className='max-w-6xl space-y-8'>
+    <div className='max-w-6xl space-y-4 md:space-y-8'>
       <section className='space-y-2'>
-        <Eyebrow>Funding</Eyebrow>
-        <div className='flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between'>
-          <div className='max-w-2xl space-y-2'>
+        <div className='flex gap-4 items-end lg:justify-between'>
+          <div className='max-w-2xl space-y-1 h-16 flex flex-col justify-center w-full px-1'>
+            <Eyebrow>Funding</Eyebrow>
             <h1 className='font-poly font-bold text-foreground text-lg md:text-xl tracking-tight'>Account 01</h1>
-            <p className='font-display text-foreground/70 text-sm leading-6'>
-              Balance, recent transactions, and activity preview.
-            </p>
           </div>
 
-          <div className='rounded-sm bg-foreground/20 px-4 py-3 text-left lg:text-right min-w-64'>
+          <div className='rounded-sm bg-foreground/20 px-4 py-3 text-left lg:text-right min-w-54'>
             <Eyebrow>Stake Total Value</Eyebrow>
             <p className='mt-1 font-display text-sm font-medium text-foreground'>$0</p>
           </div>
@@ -119,74 +116,82 @@ export const Content = () => {
           <div className='flex flex-col gap-6'>
             <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
               <div className='space-y-4'>
-                <div className='inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground/55'>
-                  <span className='size-1.5 rounded-full bg-foreground/70' />
-                  <Eyebrow>Active</Eyebrow>
-                </div>
+                {currentBalance > 0 && (
+                  <div className='inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground/55'>
+                    <span className='size-1.5 rounded-full bg-foreground/70' />
+                    <Eyebrow>Active</Eyebrow>
+                  </div>
+                )}
 
                 <div className='space-y-2'>
                   <p className='font-display text-4xl font-semibold tracking-tight text-foreground md:text-4xl'>
                     {formatCurrency(currentBalance)}
                   </p>
-                  <div className='flex flex-wrap items-center gap-3 text-sm'>
-                    <div
-                      className={cn('inline-flex items-center gap-1.5 font-display', {
-                        'text-foreground': balanceChange >= 0,
-                        'text-slate-500': balanceChange < 0
-                      })}>
-                      <Icon name={balanceChange >= 0 ? 'trending-up' : 'trending-down'} className='size-4' />
-                      <span>{formatSignedCurrency(balanceChange)} this month</span>
+                  {currentBalance > 0 && (
+                    <div className='flex flex-wrap items-center gap-3 text-sm'>
+                      <div
+                        className={cn('inline-flex items-center gap-1.5 font-display', {
+                          'text-foreground': balanceChange >= 0,
+                          'text-slate-500': balanceChange < 0
+                        })}>
+                        <Icon name={balanceChange >= 0 ? 'trending-up' : 'trending-down'} className='size-4' />
+                        <span>{formatSignedCurrency(balanceChange)} this month</span>
+                      </div>
+                      <span className='text-muted-foreground'>{formatPercent(balanceChangePercent)}</span>
                     </div>
-                    <span className='text-muted-foreground'>{formatPercent(balanceChangePercent)}</span>
+                  )}
+                </div>
+              </div>
+
+              {currentBalance > 0 && (
+                <div className='grid grid-cols-2 gap-2 sm:min-w-64'>
+                  <div className='rounded-lg bg-background/80 p-3'>
+                    <Eyebrow>Available</Eyebrow>
+                    <p className='mt-2 font-display text-base font-medium text-foreground'>
+                      {formatCurrency(availableBalance)}
+                    </p>
+                  </div>
+                  <div className='rounded-lg bg-background/80 p-3'>
+                    <Eyebrow>Pending</Eyebrow>
+                    <p className='mt-2 font-display text-base font-medium text-foreground'>
+                      {formatCurrency(pendingTotal)}
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              <div className='grid grid-cols-2 gap-2 sm:min-w-64'>
-                <div className='rounded-lg bg-background/80 p-3'>
-                  <Eyebrow>Available</Eyebrow>
-                  <p className='mt-2 font-display text-base font-medium text-foreground'>
-                    {formatCurrency(availableBalance)}
-                  </p>
-                </div>
-                <div className='rounded-lg bg-background/80 p-3'>
-                  <Eyebrow>Pending</Eyebrow>
-                  <p className='mt-2 font-display text-base font-medium text-foreground'>
-                    {formatCurrency(pendingTotal)}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
-            <div className='h-64' data-accounts-balance-chart>
-              <EvilAreaChart
-                data={ACCOUNT_HISTORY}
-                chartConfig={BALANCE_CHART_CONFIG}
-                xDataKey='label'
-                yDataKey='balance'
-                className='h-full w-full min-h-0 aspect-auto!'
-                chartProps={{
-                  margin: {
-                    top: 8,
-                    right: 10,
-                    bottom: 0,
-                    left: 6
-                  }
-                }}
-                curveType='monotone'
-                strokeVariant='solid'
-                areaVariant='gradient'
-                hideLegend
-                tooltipVariant='frosted-glass'
-                tooltipRoundness='xl'
-                xAxisProps={{
-                  tickMargin: 10
-                }}
-                yAxisProps={{
-                  tickFormatter: (value) => formatCompactCurrency(Number(value))
-                }}
-              />
-            </div>
+            {currentBalance > 0 && (
+              <div className='h-64' data-accounts-balance-chart>
+                <EvilAreaChart
+                  data={ACCOUNT_HISTORY}
+                  chartConfig={BALANCE_CHART_CONFIG}
+                  xDataKey='label'
+                  yDataKey='balance'
+                  className='h-full w-full min-h-0 aspect-auto!'
+                  chartProps={{
+                    margin: {
+                      top: 8,
+                      right: 10,
+                      bottom: 0,
+                      left: 6
+                    }
+                  }}
+                  curveType='monotone'
+                  strokeVariant='solid'
+                  areaVariant='gradient'
+                  hideLegend
+                  tooltipVariant='frosted-glass'
+                  tooltipRoundness='xl'
+                  xAxisProps={{
+                    tickMargin: 10
+                  }}
+                  yAxisProps={{
+                    tickFormatter: (value) => formatCompactCurrency(Number(value))
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -212,10 +217,10 @@ export const Content = () => {
       <section className='rounded-xl border border-border/50 bg-border/4 p-4 sm:p-6'>
         <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
           <div>
-            <Eyebrow>Recent Transactions</Eyebrow>
+            <Eyebrow>Recent Txn</Eyebrow>
             <h2 className='mt-2 font-display text-2xl font-semibold tracking-tight text-foreground'>Activity</h2>
           </div>
-          <p className='text-sm text-muted-foreground'>Last 4 entries</p>
+          <p className='text-sm text-muted-foreground'>0 txn</p>
         </div>
 
         <div className='mt-6 space-y-2'>

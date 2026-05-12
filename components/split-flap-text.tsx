@@ -375,7 +375,7 @@ function SplitFlapIconFace({
 }) {
   return (
     <div
-      className={`flex h-[0.9em] w-full items-center justify-center ${
+      className={`flex h-[0.9em] w-full items-center justify-center px-2.5 ${
         position === 'top' ? 'translate-y-[0.45em]' : '-translate-y-[0.45em]'
       }`}
       aria-hidden='true'>
