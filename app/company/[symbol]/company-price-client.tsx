@@ -732,11 +732,13 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
                   <EvilAreaChart
                     data={EMPTY_HISTORY}
                     chartConfig={getPriceChartConfig(`${symbol} close`, true)}
+                    isLoading
                     xDataKey='label'
                     yDataKey='close'
                     className='h-full w-full min-h-0'
-                    isLoading
-                    loadingPoints={5}
+                    curveType='natural'
+                    areaVariant='gradient-reverse'
+                    loadingPoints={6}
                     hideLegend
                     hideCartesianGrid
                   />

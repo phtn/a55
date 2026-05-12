@@ -48,11 +48,12 @@ export const Sidebar = () => {
     <aside className='fixed left-0 top-0 bottom-0 w-16 lg:min-w-54 bg-background border-r-[0.5px] border-dotted border-border z-50 flex flex-col'>
       {/* Logo */}
       <div className='h-16 flex items-center justify-center border-b-[0.5px] border-dotted border-border'>
-        <div className='flex items-center justify-start space-x-4 px-6 h-16 w-full'>
-          <Icon name='re-up.ph' className='size-4' />
+        <div className='flex items-center justify-between space-x-4 ps-6 pe-1 h-16 w-full'>
+          <Icon name='bet69' className='size-7' />
           <h2 className='font-display font-medium text-foreground text-base whitespace-nowrap leading-0 tracking-tight'>
-            WebTech
+            Stake Street
           </h2>
+          <Icon name='left-small' className='size-8 opacity-70' />
         </div>
       </div>
 

@@ -82,7 +82,7 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
               {pathname ? (
                 <Icon
                   name={pathname.split('/').pop()?.toLowerCase() as LogoNameType}
-                  className='size-6 md:size-6 text-foreground/70 bg-linear-to-l from-background/80 via-background to-transparent'
+                  className='size-6 md:size-6 text-foreground/80 bg-linear-to-l from-background/80 via-background to-transparent'
                 />
               ) : (
                 <PixelGrid
@@ -98,7 +98,7 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
               text={pageTitle}
               showCursor={false}
               speed={22}
-              className='truncate font-display font-medium text-foreground/80 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
+              className='truncate font-display font-medium text-foreground/90 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
             />
           </div>
 
