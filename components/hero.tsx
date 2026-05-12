@@ -127,7 +127,7 @@ const Hero = ({
     <div ref={contentRef} className='flex flex-col items-center flex-1 justify-center w-full grayscale'>
       <SplitFlapAudioProvider>
         <div className='relative'>
-          <SplitFlapText text='stake*street' speed={64} size='3rem' iconName='bet69' />
+          <SplitFlapText text='stake*street' speed={64} size='2rem' iconName='bet69' />
           <div className='mt-4 hidden'>
             <SplitFlapMuteToggle />
           </div>
