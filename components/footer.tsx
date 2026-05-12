@@ -70,7 +70,7 @@ export const FooterSection = () => {
   }, [])
 
   return (
-    <section ref={sectionRef} id='footer' className='relative pt-2 pl-6 md:pl-8 lg:ml-54 max-w-6xl'>
+    <section ref={sectionRef} id='footer' className='relative pt-2 px-10 _pl-6 _md:pl-8 _lg:ml-54 _max-w-6xl'>
       {/* Section header */}
       <Header title='Stake Street' tag='QUICK LINKS' id='+' ref={headerRef} />
 

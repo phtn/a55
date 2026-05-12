@@ -1,6 +1,6 @@
 'use client'
 
-import { Content } from '@/app/content'
+import { Content } from '@/app/x/overview-content'
 import { Page } from '@/types/dashboard'
 import gsap from 'gsap'
 import { useEffect, useRef } from 'react'

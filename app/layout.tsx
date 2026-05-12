@@ -1,5 +1,6 @@
 import { FooterSection } from '@/components/footer'
 import { ThemeProvider } from '@/components/theme-provider'
+import WagmiContext from '@/ctx/wagmi'
 import { THEME_SCRIPT } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import type { Metadata } from 'next'
@@ -37,10 +38,12 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className='min-h-full flex flex-col'>
-        <ThemeProvider>
-          {children}
-          <FooterSection />
-        </ThemeProvider>
+        <WagmiContext>
+          <ThemeProvider>
+            {children}
+            <FooterSection />
+          </ThemeProvider>
+        </WagmiContext>
       </body>
     </html>
   )

@@ -1,5 +1,6 @@
 'use client'
 
+import { x1 } from '@/components/bets/result'
 import { JsonViewer } from '@/components/data/json-viewer'
 import { SimpleTable } from '@/components/data/simple-table'
 import { Tab, Tabs } from '@/components/ui/tabs'
@@ -471,7 +472,7 @@ export const BetsPage = () => {
     refreshInterval: 2000
   })
 
-  const payload = bets?.data ?? bets
+  const payload = bets?.data ?? x1
   const tableNodes = useMemo(() => getTableNodes(payload), [payload])
   const betResult = useMemo(() => parseBetResult(payload), [payload])
 

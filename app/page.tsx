@@ -1,10 +1,5 @@
-import { AppShell } from '@/components/app-shell'
-import { Content } from './content'
+import { HeroSection } from '@/components/hero'
 
-export default function AppLayout() {
-  return (
-    <AppShell>
-      <Content />
-    </AppShell>
-  )
+export default function Splash() {
+  return <HeroSection />
 }

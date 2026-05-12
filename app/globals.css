@@ -18,7 +18,27 @@
   font-style: normal;
   font-display: swap;
 }
-
+@font-face {
+  font-family: 'Polys';
+  src: url('/fonts/PolySansTrial-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Polys';
+  src: url('/fonts/PolySansTrial-MediumWide.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Polys';
+  src: url('/fonts/PolySansTrial-BulkyWide.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   color-scheme: light;
   --surface: oklch(0.998 0 0);
@@ -92,6 +112,7 @@ html[data-theme='dark'] {
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-okx: 'Okxs', sans-serif;
+  --font-poly: 'Polys', sans-serif;
   --font-display: var(--font-okx);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);

@@ -1,12 +1,7 @@
 'use client'
 
 import { Icon } from '@/lib/icons'
-import {
-  type CommodityCardData,
-  getCachedMarketsData,
-  loadMarketsData,
-  type MarketCardData
-} from '@/lib/markets-data'
+import { type CommodityCardData, getCachedMarketsData, loadMarketsData, type MarketCardData } from '@/lib/markets-data'
 import gsap from 'gsap'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
@@ -194,28 +189,30 @@ export const Markets = () => {
               const isPositive = (market.change ?? 0) >= 0
               return (
                 <div key={market.symbol} data-markets-card className='bg-foreground/2 rounded-lg p-4 cursor-default'>
-                  <div className='flex items-center justify-between mb-2'>
-                    <div className='flex items-center gap-2'>
-                      <span className='text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex gap-2'>
+                      <p className='font-display font-bold text-base tracking-wide'>{market.name}</p>
+                      <div className='flex items-center text-[10px] font-mono px-1.5 py-0 rounded-sm bg-muted text-foreground/70'>
                         {market.location}
-                      </span>
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-2'>
                       <div
                         className={`w-1.5 h-1.5 rounded-full ${
                           market.status === 'open' ? 'bg-foreground animate-pulse-glow' : 'bg-muted-foreground/30'
                         }`}
                       />
+                      <Icon
+                        name={isPositive ? 'trending-up' : 'trending-down'}
+                        className={`w-3 h-3 ${isPositive ? 'text-foreground' : 'text-slate-500'}`}
+                      />
                     </div>
-                    <Icon
-                      name={isPositive ? 'trending-up' : 'trending-down'}
-                      className={`w-3 h-3 ${isPositive ? 'text-foreground' : 'text-slate-500'}`}
-                    />
                   </div>
-                  <p className='text-sm font-medium text-slate-500'>{market.name}</p>
-                  <div className='flex items-end justify-between mt-2 gap-3'>
-                    <p className='text-2xl font-display font-semibold text-foreground ticker-font'>
+                  <div className='flex items-end justify-between gap-3'>
+                    <p className='text-lg font-display font-medium text-foreground ticker-font'>
                       {formatIndexValue(market.value)}
                     </p>
-                    <span className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
+                    <span className={`text-lg font-light ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>
                       {formatPercentValue(market.change, 2)}
                     </span>
                   </div>
@@ -227,16 +224,18 @@ export const Markets = () => {
       ))}
 
       <div data-markets-commodities>
-        <h2 className='text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3'>Commodities</h2>
+        <h2 className='font-display font-medium text-muted-foreground text-xs uppercase tracking-widest mb-3'>
+          Commodities
+        </h2>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3'>
           {commodities.map((commodity) => {
             const isPositive = (commodity.change ?? 0) >= 0
             return (
               <div key={commodity.symbol} data-markets-commodity-card className='glass-panel-hover rounded-xl p-4'>
-                <p className='text-sm font-medium text-foreground'>{commodity.name}</p>
+                <p className='font-display font-medium text-foreground text-base'>{commodity.name}</p>
                 <p className='text-[10px] text-muted-foreground font-mono mt-0.5'>per {commodity.unit}</p>
                 <div className='flex items-end justify-between mt-3 gap-3'>
-                  <p className='text-lg font-mono font-semibold text-foreground ticker-font'>
+                  <p className='text-lg font-display font-semibold text-foreground ticker-font'>
                     {formatCommodityValue(commodity.price)}
                   </p>
                   <span className={`text-xs font-mono ${isPositive ? 'text-foreground' : 'text-slate-500'}`}>

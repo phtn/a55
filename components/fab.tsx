@@ -15,11 +15,10 @@ interface MenuItem {
 }
 
 const navItems: MenuItem[] = [
-  { icon: 'arrow-right', label: 'Overview', path: '/', color: 'hsl(187,90%,51%)' },
-  { icon: 'arrow-right', label: 'Explore', path: '/explore', color: 'hsl(280,65%,60%)' },
+  { icon: 'arrow-right', label: 'Accounts', path: '/x', color: 'hsl(187,90%,51%)' },
+  { icon: 'arrow-right', label: 'Stakes', path: '/x/stakes', color: 'hsl(280,65%,60%)' },
   // { icon: 'arrow-right', label: 'Watchlist', path: '/watchlist', color: 'hsl(38,92%,55%)' },
-  { icon: 'arrow-right', label: 'Markets', path: '/markets', color: 'hsl(160,70%,45%)' },
-  { icon: 'arrow-right', label: 'Bets', path: '/bets', color: '#ccc' }
+  { icon: 'arrow-right', label: 'Bets', path: '/x/bets', color: 'hsl(160,70%,45%)' }
 ]
 
 const positions = [
