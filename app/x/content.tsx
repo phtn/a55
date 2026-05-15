@@ -3,12 +3,14 @@
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
 import { FaqsSec } from '@/components/product/faqs'
+import { CryptoPay } from '@/components/product/pay'
 import { Typewrite } from '@/components/text/typewriter'
 import { Button } from '@/components/ui/button'
 import { Eyebrow } from '@/components/ui/eyebrow'
 import { Input } from '@/components/ui/input'
 import { api } from '@/convex/_generated/api'
 import { useToggle } from '@/hooks/use-toggle'
+import { SearchParamsProvider } from '@/lib/appkit/params-ctx'
 import { useFirebaseUser } from '@/lib/firebase/auth'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -261,12 +263,16 @@ const XContent = () => {
       )}
 
       {!stakes || stakes.length === 0 ? <FaqsSec /> : <RecentTxn txns={[]} balance={0} />}
+
+      {accounts?.[0] && <CryptoPay accountId={accounts[0]._id} />}
     </div>
   )
 }
 
 export const Content = () => (
   <Suspense fallback={<div>Loading...</div>}>
-    <XContent />
+    <SearchParamsProvider>
+      <XContent />
+    </SearchParamsProvider>
   </Suspense>
 )

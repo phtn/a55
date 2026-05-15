@@ -250,7 +250,6 @@ export const PayTab = ({
     return payableUsdValue
   }, [defaultRelayAmountUsd, payableUsdValue])
 
-  // Calculate token amount from payable USD amount
   const tokenAmount = useMemo(() => {
     if (!selectedToken || payableUsdValue === null) return null
     const price = getTokenPrice(selectedToken)

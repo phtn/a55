@@ -4,6 +4,7 @@ import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { parseAsArrayOf, parseAsString, useQueryState } from 'nuqs'
 import { Button } from '../ui/button'
+import { Menu } from '../ui/menu'
 import { ProductCard } from './product-card'
 
 export interface Product {
@@ -86,7 +87,7 @@ export const ProductList = () => {
           </ul>
           {selectedProduct.length < 3 && (
             <div className='flex flex-col justify-between h-full w-full'>
-              <div className=' p-6'>
+              <div className='p-6'>
                 <h2 className='font-poly font-bold text-2xl'>
                   {products.find((product) => product.id === selectedProduct[0])?.title}
                 </h2>
@@ -94,10 +95,59 @@ export const ProductList = () => {
                   {products.find((product) => product.id === selectedProduct[0])?.description}
                 </p>
               </div>
-              <div className='flex items-center justify-end'>
+              <div className='flex items-center justify-between border ps-6'>
+                <div className='flex items-center space-x-2'>
+                  <Menu
+                    popupClassName='justify-start'
+                    items={[
+                      {
+                        id: 'eth',
+                        label: 'Ethereum',
+                        value: 'ethereum',
+                        content: (
+                          <Button
+                            size='lg'
+                            variant='ghost'
+                            className='flex items-center justify-start space-x-1 rounded-sm h-10 font-poly font-semibold text-foreground text-base px-4 w-full'>
+                            <Icon name='eth' className='size-4' />
+                            <span>Ethereum</span>
+                          </Button>
+                        )
+                      },
+                      {
+                        id: 'pol',
+                        label: 'Polygon',
+                        value: 'polygon',
+                        content: (
+                          <Button
+                            size='lg'
+                            variant='ghost'
+                            className='flex items-center justify-start space-x-1 rounded-sm h-10 font-poly font-semibold text-foreground text-base px-4 w-full'>
+                            <Icon name='pol' className='size-4' />
+                            <span>Polygon</span>
+                          </Button>
+                        )
+                      }
+                    ]}>
+                    <Button
+                      size='lg'
+                      variant='ghost'
+                      className='flex items-center space-x-1 rounded-md h-12 font-poly font-semibold text-base px-4 bg-background/15'>
+                      <span>Network</span>
+                      <Icon name='arrow-drop-down' className='size-4' />
+                    </Button>
+                  </Menu>
+                  <Button
+                    size='lg'
+                    variant='ghost'
+                    className='flex items-center space-x-1 rounded-md h-12 font-poly font-semibold text-base px-4 bg-background/15'>
+                    <span>Token</span>
+                    <Icon name='arrow-drop-down' className='size-4' />
+                  </Button>
+                </div>
                 <Button
                   size='lg'
-                  className='flex items-center space-x-2 rounded-lg h-14 font-poly font-semibold text-lg px-8'>
+                  className='flex items-center space-x-2 rounded-md h-12 font-poly font-semibold text-base px-8 italic'>
                   <span>Buy Now</span>
                   <Icon name='chevrons-right' className='size-6' />
                 </Button>

@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import { query } from '../_generated/server'
 
 export const getOrderByRefNumber = query({
-  args: { refNumber: v.string() },
+  args: { refNumber: v.optional(v.string()) },
   handler: async ({ db }, { refNumber }) => {
     if (!refNumber) return null
     const order = await db

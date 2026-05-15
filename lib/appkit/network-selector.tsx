@@ -71,20 +71,20 @@ const NetworkButtonRound = ({ name, onSelect, selected }: NetworkButtonRoundProp
       <Icon
         name={
           name === 'bitcoin'
-            ? 'bet69'
+            ? 'btc'
             : name === 'sepolia'
-              ? 're-up.ph'
+              ? 'eth'
               : name === 'polygon' || name === 'amoy'
-                ? 'bet69'
-                : 're-up.ph'
+                ? 'pol'
+                : 'eth'
         }
         className={cn('dark:text-slate-300 size-4', {
           'size-4': selected,
-          'text-rose-400': name === 'sepolia' && selected,
-          'dark:text-polygon text-purple-400': name === 'polygon' && selected,
-          'text-ethereum dark:bg-ethereum': name === 'ethereum' && selected,
-          'text-rose-300 dark:text-amoy': name === 'amoy' && selected,
-          'text-bitcoin dark:text-bitcoin': name === 'bitcoin' && selected
+          'text-foreground': name === 'sepolia' && selected,
+          'dark:text-foreground text-foreground': name === 'polygon' && selected,
+          'text-foreground dark:bg-ethereum': name === 'ethereum' && selected,
+          'text-foreground dark:text-amoy': name === 'amoy' && selected,
+          'text-foreground dark:text-bitcoin': name === 'bitcoin' && selected
         })}
       />
       <p

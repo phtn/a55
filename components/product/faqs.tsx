@@ -41,7 +41,8 @@ const questions = [
   {
     id: 'how-to',
     title: 'How does it work?',
-    content: '.'
+    content:
+      'Buy a Stake to join the bets. Your stake will be used to place bets. One win per day. Winnings are posted right away and can be withdrawn to your crypto wallet. Average yield is 10.88% of the stake value.'
   },
   {
     id: 'withdrawal',

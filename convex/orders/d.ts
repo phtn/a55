@@ -5,7 +5,7 @@ export const orderStatus = v.union(v.literal('pending'), v.literal('completed'),
 export type OrderStatus = typeof orderStatus.type
 
 export const orderFields = {
-  refNumber: v.string(),
+  refNumber: v.optional(v.string()),
   userId: v.string(),
   accountId: v.id('accounts'),
   currency: v.string(),
