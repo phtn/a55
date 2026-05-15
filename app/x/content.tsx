@@ -126,17 +126,17 @@ const XContent = () => {
                   <Input
                     autoFocus
                     ref={titleInputRef}
-                    placeholder={accounts?.[0]?.title ?? ''}
                     defaultValue={title}
                     onChange={handleTitleChange}
+                    placeholder={accounts?.[0]?.title ?? ''}
                     className='font-poly font-bold text-lg md:text-xl tracking-tight placeholder:opacity-40 border-none rounded-lg max-w-39 bg-transparent focus-visible:ring-0 outline-none -ml-3'
                   />
                 </form>
               ) : accounts?.[0].title ? (
                 <Typewrite
-                  text={accounts[0].title}
-                  showCursor={false}
                   speed={25}
+                  showCursor={false}
+                  text={accounts[0].title}
                   className='font-poly font-bold text-foreground text-lg md:text-xl tracking-tight w-36'
                 />
               ) : (

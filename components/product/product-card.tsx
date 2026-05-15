@@ -14,15 +14,15 @@ export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
   return (
     <Card className='w-3xig md:w-2xs p-0 rounded-md group'>
       <CardContent className='relative flex flex-col p-0'>
-        <div className='relative flex items-center justify-center h-40 w-full overflow-hidden bg-foreground/10'>
+        <div className='relative flex items-center justify-center h-46 w-full overflow-hidden bg-foreground/10'>
           <Icon
             name={product.icon}
             className='size-96 text-background group-hover:scale-90 transition-transform duration-500 ease-out'
           />
         </div>
 
-        <p className='absolute top-6 left-6 font-poly font-semibold text-foreground text-center text-lg'>
-          {product.description}
+        <p className='absolute top-6 left-6 font-poly font-semibold text-foreground text-lg text-center capitalize'>
+          {product.id}
         </p>
         <div className='flex flex-col items-center p-px border-t border-border/50'>
           <Button

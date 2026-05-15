@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon, IconName } from '@/lib/icons'
+import { cn } from '@/lib/utils'
 import { parseAsArrayOf, parseAsString, useQueryState } from 'nuqs'
 import { Button } from '../ui/button'
 import { ProductCard } from './product-card'
@@ -13,29 +14,47 @@ export interface Product {
   description?: string
 }
 
+const PRODUCT_IDS = ['white', 'mase', 'ivey']
 const arrayParser = parseAsArrayOf(parseAsString, ',')
 
 export const ProductList = () => {
   const products: Product[] = [
-    { id: 'entry', title: '', description: 'Entry Level', price: 15, icon: 'abstract' },
-    { id: 'boss', title: '', description: 'Boss Level', price: 30, icon: 'aquarius' },
-    { id: 'vip', title: '', description: 'VIP Level', price: 60, icon: 'amethyst' }
+    {
+      id: 'white',
+      title: 'Dana White',
+      description: 'An King level tier. Suitable for mortals vulnerable to pain.',
+      price: 15,
+      icon: 'abstract'
+    },
+    {
+      id: 'mase',
+      title: 'Mikki Mase',
+      description:
+        'A Demigod level tier. Suitable for players who loves to be around bitches. These players are also known for their ability to wield and ride the lightning.',
+      price: 30,
+      icon: 'aquarius'
+    },
+    {
+      id: 'ivey',
+      title: 'Phil Ivey',
+      description:
+        'A Regicidal level tier. Suitable for players who knows exactly what they want. Ultra self-aware and can never be perturbed.',
+      price: 60,
+      icon: 'amethyst'
+    }
   ]
   // let's wire up nuqs to handle the product selection
-  const [selectedProduct, setSelectedProduct] = useQueryState(
-    'product',
-    arrayParser.withDefault(['entry', 'boss', 'vip'])
-  )
+  const [selectedProduct, setSelectedProduct] = useQueryState('product', arrayParser.withDefault(PRODUCT_IDS))
   const handleProductSelect = (productId: string) => {
     setSelectedProduct([productId])
   }
   const handleViewAll = () => {
-    setSelectedProduct(['entry', 'boss', 'vip'])
+    setSelectedProduct(PRODUCT_IDS)
   }
 
   return (
     <section className='h-80 md:h-96'>
-      <div className='min-h-84 md:min-h-96 rounded-md border border-border/60 bg-border/20 px-4 py-2'>
+      <div className='min-h-84 md:min-h-96 rounded-md bg-linear-to-r from-border/5 via-border/20 to-border/5 px-4 py-2'>
         <div className='flex items-center justify-between'>
           <h2 className='flex items-center space-x-3 h-14 font-display font-medium'>
             <Icon name='tag-chevron' className='opacity-80' />
@@ -47,19 +66,45 @@ export const ProductList = () => {
             </Button>
           )}
         </div>
-        <ul className='flex items-center justify-start space-x-4 p-4 md:space-x-8 md:p-8 h-64 md:h-75 bg-foreground/40 rounded-lg overflow-scroll'>
-          {products
-            .filter((product) => selectedProduct.includes(product.id))
-            .map((product) => (
-              <li key={product.id} className=''>
-                <ProductCard
-                  product={product}
-                  isSelected={selectedProduct.includes(product.id)}
-                  onSelect={handleProductSelect}
-                />
-              </li>
-            ))}
-        </ul>
+        <div
+          className={cn(
+            'flex items-start justify-start p-4 md:p-8 h-64 md:h-75 bg-foreground/40 rounded-lg overflow-scroll',
+            { 'bg-foreground/15': selectedProduct.length < 3 }
+          )}>
+          <ul className='flex items-center space-x-4 md:space-x-8'>
+            {products
+              .filter((product) => selectedProduct.includes(product.id))
+              .map((product) => (
+                <li key={product.id} className=''>
+                  <ProductCard
+                    product={product}
+                    isSelected={selectedProduct.includes(product.id)}
+                    onSelect={handleProductSelect}
+                  />
+                </li>
+              ))}
+          </ul>
+          {selectedProduct.length < 3 && (
+            <div className='flex flex-col justify-between h-full w-full'>
+              <div className=' p-6'>
+                <h2 className='font-poly font-bold text-2xl'>
+                  {products.find((product) => product.id === selectedProduct[0])?.title}
+                </h2>
+                <p className='font-display'>
+                  {products.find((product) => product.id === selectedProduct[0])?.description}
+                </p>
+              </div>
+              <div className='flex items-center justify-end'>
+                <Button
+                  size='lg'
+                  className='flex items-center space-x-2 rounded-lg h-14 font-poly font-semibold text-lg px-8'>
+                  <span>Buy Now</span>
+                  <Icon name='chevrons-right' className='size-6' />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )
