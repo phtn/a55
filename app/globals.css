@@ -21,14 +21,14 @@
 @font-face {
   font-family: 'Polys';
   src: url('/fonts/PolySansTrial-Medium.otf') format('opentype');
-  font-weight: 500;
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Polys';
   src: url('/fonts/PolySansTrial-MediumWide.otf') format('opentype');
-  font-weight: 600;
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }

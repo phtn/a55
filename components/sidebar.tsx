@@ -1,4 +1,5 @@
 'use client'
+
 import { preloadExploreData } from '@/lib/explore-data'
 import { useFirebaseUser } from '@/lib/firebase/auth'
 import { getInitials } from '@/lib/helpers/user'

@@ -325,7 +325,7 @@ function SplitFlapChar({
           <SplitFlapIconFace iconName={iconName} color={textColor} position='bottom' />
         ) : (
           <span
-            className='-translate-y-[0.48em] leading-none transition-colors duration-150'
+            className='translate-y-[-0.48em] leading-none transition-colors duration-150'
             style={{ color: textColor }}>
             {currentChar}
           </span>
@@ -376,10 +376,10 @@ function SplitFlapIconFace({
   return (
     <div
       className={`flex h-[0.9em] w-full items-center justify-center px-2.5 ${
-        position === 'top' ? 'translate-y-[0.45em]' : '-translate-y-[0.45em]'
+        position === 'top' ? 'translate-y-[0.45em]' : 'translate-y-[-0.45em]'
       }`}
       aria-hidden='true'>
-      <Icon name={iconName} className='size-8 shrink-0' color={color} />
+      <Icon name={iconName} className='size-8 scale-90 shrink-0' color={color} />
     </div>
   )
 }

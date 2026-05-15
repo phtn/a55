@@ -34,8 +34,8 @@ export function SignOutButton() {
         variant='ghost'
         disabled={isSigningOut}
         onClick={handleSignOut}
-        className='w-full flex items-center justify-center rounded-[18px] border-white/10 bg-white/3 text-white transition-colors hover:bg-white/6'>
-        <Icon name='x' />
+        className='w-full flex items-center justify-center rounded-[18px] border-white/10 bg-white/3 transition-colors hover:bg-white/6'>
+        <Icon name='logout' />
       </Button>
       {signOutError ? (
         <p className='max-w-sm font-mono text-[10px] uppercase tracking-[0.24em] text-[#ff7d33]'>{signOutError}</p>
