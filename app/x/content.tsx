@@ -13,7 +13,7 @@ import { useFirebaseUser } from '@/lib/firebase/auth'
 import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useMutation, useQuery } from 'convex/react'
-import { SubmitEvent, useCallback, useRef, useState } from 'react'
+import { SubmitEvent, Suspense, useCallback, useRef, useState } from 'react'
 import { ProductList } from '../../components/product/product-list'
 import { RecentTxn } from './recent-txn'
 
@@ -68,7 +68,7 @@ const previousBalance = ACCOUNT_HISTORY[ACCOUNT_HISTORY.length - 2]?.balance ?? 
 const balanceChange = currentBalance - previousBalance
 const balanceChangePercent = previousBalance === 0 ? 0 : (balanceChange / previousBalance) * 100
 
-export const Content = () => {
+const XContent = () => {
   const { user } = useFirebaseUser()
   const accounts = useQuery(api.accounts.q.getAccountsBySub, user?.uid ? { sub: user.uid } : 'skip')
   const stakeIds = accounts?.[0]?.stakes ?? null
@@ -264,3 +264,9 @@ export const Content = () => {
     </div>
   )
 }
+
+export const Content = () => (
+  <Suspense fallback={<div>Loading...</div>}>
+    <XContent />
+  </Suspense>
+)

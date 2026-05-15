@@ -3,7 +3,7 @@
 import { Content } from '@/app/x/overview-content'
 import { Page } from '@/types/dashboard'
 import gsap from 'gsap'
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { BetsPage } from './bets-page'
 import { Explore } from './explore'
 import { Markets } from './markets'
@@ -12,7 +12,7 @@ interface AnimatedContentProps {
   page: Page
 }
 
-export const AnimatedContent = ({ page }: AnimatedContentProps) => {
+const C = ({ page }: AnimatedContentProps) => {
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,3 +68,9 @@ export const AnimatedContent = ({ page }: AnimatedContentProps) => {
       )
   }
 }
+
+export const AnimatedContent = ({ page }: AnimatedContentProps) => (
+  <Suspense fallback={<div>Loading...</div>}>
+    <C page={page} />
+  </Suspense>
+)
