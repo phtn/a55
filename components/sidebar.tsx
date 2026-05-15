@@ -55,7 +55,7 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className='h-16 flex items-center justify-center border-b-[0.5px] border-dotted border-border'>
         <div className='flex items-center justify-between space-x-4 ps-6 pe-1 h-16 w-full'>
-          <Icon name='bet69' className='size-5 opacity-90' />
+          <Icon name='bet69' className='size-6 opacity-90' />
           <h2 className='font-poly font-bold italic text-foreground/80 text-base whitespace-nowrap leading-0 tracking-tight'>
             Stake Street
           </h2>

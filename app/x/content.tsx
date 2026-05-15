@@ -2,6 +2,7 @@
 
 import { EvilAreaChart } from '@/components/evilcharts/charts/area-chart'
 import type { ChartConfig } from '@/components/evilcharts/ui/chart'
+import { FaqsSec } from '@/components/product/faqs'
 import { Typewrite } from '@/components/text/typewriter'
 import { Button } from '@/components/ui/button'
 import { Eyebrow } from '@/components/ui/eyebrow'
@@ -14,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { useMutation, useQuery } from 'convex/react'
 import { SubmitEvent, useCallback, useRef, useState } from 'react'
 import { ProductList } from '../../components/product/product-list'
+import { RecentTxn } from './recent-txn'
 
 const CHART_COLOR = 'var(--foreground)'
 
@@ -22,19 +24,7 @@ type BalancePoint = {
   balance: number
 }
 
-type Transaction = {
-  id: string
-  name: string
-  description: string
-  category: string
-  amount: number
-  date: string
-  status: 'posted' | 'pending'
-}
-
 const ACCOUNT_HISTORY: BalancePoint[] = [{ label: 'May', balance: 0.0 }]
-
-const RECENT_TRANSACTIONS: Transaction[] = []
 
 const BALANCE_CHART_CONFIG = {
   balance: {
@@ -60,11 +50,6 @@ const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 1
 })
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric'
-})
-
 const DECIMAL_FORMATTER = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1
@@ -78,30 +63,10 @@ const formatSignedCurrency = (value: number) => `${value >= 0 ? '+' : '-'}${form
 
 const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${DECIMAL_FORMATTER.format(value)}%`
 
-const formatDate = (value: string) => DATE_FORMATTER.format(new Date(value))
-
 const currentBalance = ACCOUNT_HISTORY[ACCOUNT_HISTORY.length - 1]?.balance ?? 0
 const previousBalance = ACCOUNT_HISTORY[ACCOUNT_HISTORY.length - 2]?.balance ?? currentBalance
 const balanceChange = currentBalance - previousBalance
 const balanceChangePercent = previousBalance === 0 ? 0 : (balanceChange / previousBalance) * 100
-
-const incomeTotal = RECENT_TRANSACTIONS.filter((transaction) => transaction.amount > 0).reduce(
-  (total, transaction) => total + transaction.amount,
-  0
-)
-
-const outgoingTotal = RECENT_TRANSACTIONS.filter(
-  (transaction) => transaction.amount < 0 && transaction.status === 'posted'
-).reduce((total, transaction) => total + Math.abs(transaction.amount), 0)
-
-const pendingTotal = RECENT_TRANSACTIONS.filter((transaction) => transaction.status === 'pending').reduce(
-  (total, transaction) => total + Math.abs(transaction.amount),
-  0
-)
-
-const availableBalance = currentBalance - pendingTotal
-const netFlow = incomeTotal - outgoingTotal
-const previewTransactions = RECENT_TRANSACTIONS.slice(0, 4)
 
 export const Content = () => {
   const { user } = useFirebaseUser()
@@ -232,15 +197,11 @@ export const Content = () => {
                   <div className='grid grid-cols-2 gap-2 sm:min-w-64'>
                     <div className='rounded-lg bg-background/80 p-3'>
                       <Eyebrow>Available</Eyebrow>
-                      <p className='mt-2 font-display text-base font-medium text-foreground'>
-                        {formatCurrency(availableBalance)}
-                      </p>
+                      <p className='mt-2 font-display text-base font-medium text-foreground'>{formatCurrency(0)}</p>
                     </div>
                     <div className='rounded-lg bg-background/80 p-3'>
                       <Eyebrow>Pending</Eyebrow>
-                      <p className='mt-2 font-display text-base font-medium text-foreground'>
-                        {formatCurrency(pendingTotal)}
-                      </p>
+                      <p className='mt-2 font-display text-base font-medium text-foreground'>{formatCurrency(0)}</p>
                     </div>
                   </div>
                 )}
@@ -284,66 +245,22 @@ export const Content = () => {
             <div className='mt-4 space-y-4'>
               <div className='border-b border-border/40 pb-4'>
                 <Eyebrow>Staked</Eyebrow>
-                <p className='mt-1 font-display text-xl font-semibold text-foreground'>{formatCurrency(incomeTotal)}</p>
+                <p className='mt-1 font-display text-xl font-semibold text-foreground'>{formatCurrency(0)}</p>
               </div>
               <div className='border-b border-border/40 pb-4'>
                 <Eyebrow>Staked</Eyebrow>
-                <p className='mt-1 font-display text-xl font-semibold text-foreground'>
-                  {formatCurrency(outgoingTotal)}
-                </p>
+                <p className='mt-1 font-display text-xl font-semibold text-foreground'>{formatCurrency(0)}</p>
               </div>
               <div>
                 <Eyebrow>Net Profit</Eyebrow>
-                <p className='mt-1 font-display text-xl font-semibold text-foreground'>
-                  {formatSignedCurrency(netFlow)}
-                </p>
+                <p className='mt-1 font-display text-xl font-semibold text-foreground'>{formatSignedCurrency(0)}</p>
               </div>
             </div>
           </aside>
         </section>
       )}
 
-      <section className='rounded-xl border border-border/50 bg-border/4 p-4 sm:p-6'>
-        <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
-          <div>
-            <Eyebrow>Recent Txn</Eyebrow>
-            <h2 className='mt-2 font-display text-2xl font-semibold tracking-tight text-foreground'>Activity</h2>
-          </div>
-          <p className='text-sm text-muted-foreground'>0 txn</p>
-        </div>
-
-        <div className='mt-6 space-y-2'>
-          {previewTransactions.map((transaction) => {
-            const isCredit = transaction.amount >= 0
-
-            return (
-              <div
-                key={transaction.id}
-                className='flex items-center justify-between gap-4 rounded-lg border border-border/40 bg-background/75 px-4 py-3'>
-                <div className='min-w-0'>
-                  <div className='flex items-center gap-2'>
-                    <p className='truncate font-display text-base font-semibold text-foreground'>{transaction.name}</p>
-                    <span className='rounded-full bg-muted/50 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground'>
-                      {transaction.category}
-                    </span>
-                  </div>
-                  <p className='mt-1 text-sm text-muted-foreground'>
-                    {transaction.description} · {formatDate(transaction.date)}
-                  </p>
-                </div>
-
-                <p
-                  className={cn('shrink-0 font-display text-base font-semibold', {
-                    'text-foreground': isCredit,
-                    'text-slate-500': !isCredit
-                  })}>
-                  {formatSignedCurrency(transaction.amount)}
-                </p>
-              </div>
-            )
-          })}
-        </div>
-      </section>
+      {!stakes || stakes.length === 0 ? <FaqsSec /> : <RecentTxn txns={[]} balance={0} />}
     </div>
   )
 }
