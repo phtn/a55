@@ -2,7 +2,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 
 export function FaqsSec() {
   return (
-    <div className='mx-auto w-full max-w-6xl space-y-4 pt-4'>
+    <div className='mx-auto w-full max-w-6xl space-y-4 pt-8'>
       <Accordion
         className='-space-y-px w-full rounded-md bg-card shadow dark:bg-card/50'
         collapsible

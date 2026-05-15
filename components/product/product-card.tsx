@@ -12,7 +12,7 @@ interface ProductCardProps {
 export const ProductCard = ({ product, onSelect }: ProductCardProps) => {
   const handleSelect = () => onSelect(product.id)
   return (
-    <Card className='w-2xs p-0 rounded-md group'>
+    <Card className='w-3xs md:w-2xs p-0 rounded-md group'>
       <CardContent className='relative flex flex-col p-0'>
         <div className='relative flex items-center justify-center h-40 w-full overflow-hidden bg-foreground/10'>
           <Icon

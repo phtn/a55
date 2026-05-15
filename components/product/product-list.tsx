@@ -34,8 +34,8 @@ export const ProductList = () => {
   }
 
   return (
-    <section className='h-96'>
-      <div className='min-h-96 rounded-md border border-border/60 bg-border/20 px-4 py-2'>
+    <section className='h-80 md:h-96'>
+      <div className='min-h-84 md:min-h-96 rounded-md border border-border/60 bg-border/20 px-4 py-2'>
         <div className='flex items-center justify-between'>
           <h2 className='flex items-center space-x-3 h-14 font-display font-medium'>
             <Icon name='tag-chevron' className='opacity-80' />
@@ -47,7 +47,7 @@ export const ProductList = () => {
             </Button>
           )}
         </div>
-        <ul className='flex items-center justify-start space-x-8 py-8 px-8 h-75 bg-foreground/80 rounded-sm'>
+        <ul className='flex items-center justify-start space-x-4 p-4 md:space-x-8 md:p-8 h-64 md:h-75 bg-foreground/40 rounded-lg overflow-scroll'>
           {products
             .filter((product) => selectedProduct.includes(product.id))
             .map((product) => (
