@@ -1,7 +1,6 @@
 'use client'
 
 import { api } from '@/convex/_generated/api'
-import { Id } from '@/convex/_generated/dataModel'
 import { useCrypto } from '@/hooks/use-crypto'
 import { SearchParamsProvider, useSearchParams } from '@/lib/appkit/params-ctx'
 import { PayTab } from '@/lib/appkit/pay'
@@ -50,18 +49,14 @@ const parseEnabledNetworks = (value: unknown): readonly PayNetworkName[] => {
   return enabledNetworks.length > 0 ? enabledNetworks : DEFAULT_ALLOWED_PAY_NETWORKS
 }
 
-interface CryptoPayContentProps {
-  accountId: Id<'accounts'>
-}
-
-const CryptoPayContent = ({ accountId }: CryptoPayContentProps) => {
+const CryptoPayContent = () => {
   const params = useParams()
   const refNumber = params.orderId as string
   const order = useQuery(api.orders.q.getOrderByRefNumber, { refNumber })
   const cryptoNetworksSetting = useQuery(api.admin.q.getAdminByIdentStrict, {
     identifier: CRYPTO_WALLET_IDENTIFIER
   })
-  const updateOrder = useMutation(api.orders.m.updateOrder)
+  const confirmOrderPayment = useMutation(api.orders.m.confirmOrderPayment)
   const { setParams } = useSearchParams()
   const { getBySymbol } = useCrypto()
   const [amount, setAmount] = useState('')
@@ -111,33 +106,20 @@ const CryptoPayContent = ({ accountId }: CryptoPayContentProps) => {
 
       paymentSyncedTxHashRef.current = transactionHash
       try {
-        await updateOrder({
+        await confirmOrderPayment({
           id: order._id,
-          accountId,
-          refNumber,
-          userId: '',
-          payment: {
-            ...order.payment,
-            status: 'paid',
-            txnId: transactionHash,
-            asset: context?.asset ?? null,
-            chain: context?.chain ?? order.payment.chain,
-            nativeValue: context?.nativeValue ?? order.payment.nativeValue,
-            usdValue: context?.usdValue ?? order.payment.usdValue,
-            paidAt: Date.now()
-          },
-          status: 'completed',
-          currency: '',
-          totalCents: 0,
-          processingFeeCents: 0,
-          totalWithCryptoFeeCents: 0
+          txnId: transactionHash,
+          asset: context?.asset ?? null,
+          chain: context?.chain ?? order.payment.chain,
+          nativeValue: context?.nativeValue ?? order.payment.nativeValue,
+          usdValue: context?.usdValue ?? order.payment.usdValue
         })
       } catch (error) {
         paymentSyncedTxHashRef.current = null
         console.error('Failed to update order payment status:', error)
       }
     },
-    [order, refNumber, updateOrder, accountId]
+    [confirmOrderPayment, order]
   )
 
   return (
@@ -163,10 +145,10 @@ const CryptoPayContent = ({ accountId }: CryptoPayContentProps) => {
   )
 }
 
-export const CryptoPay = ({ accountId }: { accountId: Id<'accounts'> }) => {
+export const CryptoPay = () => {
   return (
     <SearchParamsProvider>
-      <CryptoPayContent accountId={accountId} />
+      <CryptoPayContent />
     </SearchParamsProvider>
   )
 }

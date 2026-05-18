@@ -19,7 +19,7 @@ export const Icon: FC<IconProps> = ({ name, className, size = 16, color = 'curre
         aria-hidden
         strokeWidth='1'
         suppressHydrationWarning
-        className={cn('shrink-0 m-auto', { 'cursor-pointer': props.onClick }, className)}
+        className={cn('shrink-0 my-auto', { 'cursor-pointer': props.onClick }, className)}
         xmlns='http://www.w3.org/2000/svg'
         viewBox={icon?.viewBox ?? '0 0 24 24'}
         width={size}

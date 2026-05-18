@@ -1,19 +1,13 @@
-import { api } from '@/convex/_generated/api'
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
 import {
   firebaseSessionCookieMaxAgeMs,
   firebaseSessionCookieMaxAgeSeconds,
   firebaseSessionCookieName
 } from '@/lib/firebase/session'
-import { fetchMutation } from 'convex/nextjs'
-import type { DecodedIdToken } from 'firebase-admin/auth'
+import { resolveFirebaseSessionCookieDomain, syncFirebaseSessionIdentityToConvex } from '@/lib/firebase/server-session'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
-
-type SessionBody = {
-  idToken?: unknown
-}
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, {
@@ -24,34 +18,8 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   })
 }
 
-function toNullableString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value : null
-}
-
-function buildTokenIdentifier(decodedToken: DecodedIdToken) {
-  return `${decodedToken.iss}|${decodedToken.sub}`
-}
-
-async function syncFirebaseUserToConvex(decodedToken: DecodedIdToken) {
-  await fetchMutation(api.users.m.upsertByTokenIdentifier, {
-    tokenIdentifier: buildTokenIdentifier(decodedToken),
-    subject: decodedToken.sub,
-    issuer: decodedToken.iss,
-    name: toNullableString(decodedToken.name),
-    nickname: toNullableString(decodedToken.firebase?.sign_in_provider),
-    preferredUsername: toNullableString(decodedToken.email),
-    profileUrl: null,
-    pictureUrl: toNullableString(decodedToken.picture),
-    email: toNullableString(decodedToken.email),
-    phone: toNullableString(decodedToken.phone_number),
-    emailVerified: typeof decodedToken.email_verified === 'boolean' ? decodedToken.email_verified : null
-  })
-}
-async function syncAccountToConvex(decodedToken: DecodedIdToken) {
-  await fetchMutation(api.accounts.m.upsertByTokenId, {
-    tokenIdentifier: buildTokenIdentifier(decodedToken),
-    sub: decodedToken.sub
-  })
+type SessionBody = {
+  idToken?: unknown
 }
 
 export async function POST(request: NextRequest) {
@@ -70,20 +38,21 @@ export async function POST(request: NextRequest) {
     }
 
     const decodedToken = await auth.verifyIdToken(idToken)
-    await syncFirebaseUserToConvex(decodedToken)
-    await syncAccountToConvex(decodedToken)
+    await syncFirebaseSessionIdentityToConvex(decodedToken)
 
     const sessionCookie = await auth.createSessionCookie(idToken, {
       expiresIn: firebaseSessionCookieMaxAgeMs
     })
 
     const response = jsonResponse({ ok: true })
+    const cookieDomain = resolveFirebaseSessionCookieDomain(request)
     response.cookies.set(firebaseSessionCookieName, sessionCookie, {
       httpOnly: true,
       path: '/',
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: firebaseSessionCookieMaxAgeSeconds
+      maxAge: firebaseSessionCookieMaxAgeSeconds,
+      ...(cookieDomain ? { domain: cookieDomain } : {})
     })
     return response
   } catch (error) {
@@ -92,15 +61,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   const response = jsonResponse({ ok: true })
+  const cookieDomain = resolveFirebaseSessionCookieDomain(request)
 
   response.cookies.set(firebaseSessionCookieName, '', {
     httpOnly: true,
     path: '/',
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 0
+    maxAge: 0,
+    ...(cookieDomain ? { domain: cookieDomain } : {})
   })
 
   return response

@@ -2,17 +2,24 @@
 
 import { preloadExploreData } from '@/lib/explore-data'
 import { useFirebaseUser } from '@/lib/firebase/auth'
+import { createFirebaseSession } from '@/lib/firebase/session'
 import { getInitials } from '@/lib/helpers/user'
 import { Icon, IconName } from '@/lib/icons'
 import { preloadMarketsData } from '@/lib/markets-data'
+import {
+  adminSubdomainHandoffPath,
+  supportsAdminSubdomain,
+  toAdminSubdomainHostname
+} from '@/lib/routing/admin-subdomain'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useOverviewPrefetch } from './overview-prefetch-provider'
 import { SignOutButton } from './signout-button'
 import { ThemeToggle } from './theme-toggle'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { Button } from './ui/button'
 import { Menu } from './ui/menu'
 
 const navItems: { icon: IconName; label: string; path: string }[] = [
@@ -23,10 +30,11 @@ const navItems: { icon: IconName; label: string; path: string }[] = [
 
 export const Sidebar = () => {
   const pathname = usePathname()
-  const { user } = useFirebaseUser()
+  const { hasAdminClaim, user } = useFirebaseUser()
   const router = useRouter()
   const { isOverviewLoaded } = useOverviewPrefetch()
   const hasPrefetchedRef = useRef(false)
+  const [isNavigatingToAdmin, setIsNavigatingToAdmin] = useState(false)
 
   useEffect(() => {
     if (pathname !== '/x' || !isOverviewLoaded || hasPrefetchedRef.current) {
@@ -49,6 +57,39 @@ export const Sidebar = () => {
 
     hasPrefetchedRef.current = true
   }, [isOverviewLoaded, pathname, router])
+
+  const handleAdminNavigation = async () => {
+    if (!user || isNavigatingToAdmin) {
+      return
+    }
+
+    setIsNavigatingToAdmin(true)
+
+    try {
+      const currentUrl = new URL(window.location.href)
+      const idToken = await user.getIdToken(true)
+
+      if (!supportsAdminSubdomain(currentUrl.hostname)) {
+        await createFirebaseSession(idToken)
+        window.location.assign('/admin')
+        return
+      }
+
+      const adminUrl = new URL(window.location.href)
+      adminUrl.hostname = toAdminSubdomainHostname(currentUrl.hostname)
+      adminUrl.pathname = adminSubdomainHandoffPath
+      adminUrl.search = ''
+      adminUrl.hash = new URLSearchParams({
+        idToken,
+        redirectTo: '/'
+      }).toString()
+
+      window.location.assign(adminUrl.toString())
+    } catch (error) {
+      console.error('Failed to navigate to the admin app.', error)
+      setIsNavigatingToAdmin(false)
+    }
+  }
 
   return (
     <aside className='fixed left-0 top-0 bottom-0 w-16 lg:min-w-54 bg-background border-r-[0.5px] border-dotted border-border z-50 flex flex-col'>
@@ -101,6 +142,19 @@ export const Sidebar = () => {
           </Menu>
 
           <ThemeToggle />
+          {hasAdminClaim ? (
+            <Button
+              id='admin-navigator'
+              variant='ghost'
+              size='icon'
+              className='size-5'
+              disabled={isNavigatingToAdmin}
+              onClick={() => {
+                void handleAdminNavigation()
+              }}>
+              <Icon name='imperial' className='size-5' onClick={undefined} />
+            </Button>
+          ) : null}
         </div>
       </div>
     </aside>

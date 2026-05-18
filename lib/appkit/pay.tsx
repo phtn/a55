@@ -16,7 +16,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { AmountPayInput } from './amount-pay'
-import { NetworkSelector } from './network-selector'
 import { useSearchParams } from './params-ctx'
 import { PayAmount } from './pay-amount'
 import { PayButtons } from './pay-buttons'
@@ -924,7 +923,7 @@ export const PayTab = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-      className='space-y-0 w-full p-1 md:p-4 md:h-160 flex flex-col border border-l-0 border-foreground/20'>
+      className='space-y-0 w-full p-1 md:p-4 md:h-160 flex flex-col'>
       <div>
         {paymentAmountUsd && payableUsdValue !== null && !activeReceipt && (
           <PayAmount
@@ -946,17 +945,20 @@ export const PayTab = ({
             getTokenPrice={getTokenPrice}
           />
         )}
-        <NetworkSelector
-          currentNetwork={selectorCurrentNetwork}
-          onSelectNetwork={handleNetworkSelect}
-          allowedNetworks={allowedNetworks}
-        />
+
         <motion.div
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
           className='space-y-6 md:px-4 transition-transform duration-200'>
+          <div className='px-2 font-display font-base flex items-center justify-between'>
+            <span>Your Tokens</span>
+            <span className='capitalize'>
+              Network
+              <span className='font-medium px-2'>{currentNetwork}</span>
+            </span>
+          </div>
           <motion.div
             layout
             transition={{ duration: 0.3, ease: 'easeInOut' }}

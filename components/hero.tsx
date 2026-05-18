@@ -134,7 +134,7 @@ const Hero = ({
           variant='secondary'
           disabled={!isFirebaseConfigured || isSigningIn || isLoading}
           onClick={handlePrimaryAction}
-          className='group rounded-sm inline-flex w-full max-w-[20rem] h-12 items-center justify-center gap-4 px-6 py-3 font-poly font-semibold text-foreground/70 text-base bg-accent transition-all duration-200 dark:bg-white dark:hover:border-accent hover:border-foreground dark:hover:bg-foreground hover:bg-foreground hover:text-white dark:hover:text-background'>
+          className='group rounded-sm inline-flex w-full max-w-[20rem] h-12 items-center justify-center gap-4 px-6 py-3 font-poly font-semibold text-foreground/70 dark:text-background text-base bg-accent transition-all duration-200 dark:bg-white dark:hover:border-accent hover:border-foreground dark:hover:bg-foreground hover:bg-foreground hover:text-white dark:hover:text-background'>
           <p>{signInLabel}</p>
           {!signInLabel.includes('google') && (isSigningIn || isLoading) && (
             <Icon name={isSigningIn || isLoading ? 'spinner-ring' : 'arrow-right'} />

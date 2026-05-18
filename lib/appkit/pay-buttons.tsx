@@ -1,9 +1,10 @@
 'use client'
 
-import { Icon } from '@/lib/icons'
+import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { motion } from 'motion/react'
 import type { Token } from './token-coaster'
+import { tokenIcons } from './token-icons'
 
 interface PayButtonsProps {
   showReceiptButton: boolean
@@ -28,7 +29,7 @@ export const PayButtons = ({
   payToken,
   nativeSymbol
 }: PayButtonsProps) => {
-  const payTokenIcon = payToken === 'ethereum' ? (nativeSymbol === 'matic' ? 'matic' : 'ethereum') : payToken
+  const payTokenIcon: IconName = tokenIcons[payToken as Token]
 
   return (
     <motion.div layout>
@@ -50,18 +51,15 @@ export const PayButtons = ({
             onClick={onPay}
             disabled={isPayDisabled}
             className={cn(
-              'flex items-center justify-center w-full mx-auto h-14 text-lg font-semibold bg-linear-to-r from-slate-500/80 via-slate-600 to-slate-500/80 text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-sm',
-              {
-                'hover:from-slate-500 hover:to-slate-400': enablePayHoverStyles
-              }
+              'font-poly font-semibold flex items-center justify-center w-full mx-auto h-14 text-lg bg-foreground text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-sm'
             )}>
             {isPayProcessing ? (
               <Icon name='spinner-ring' className='w-5 h-5' />
             ) : (
-              <span className='flex items-center font-polysans font-medium text-white opacity-100 gap-2 drop-shadow-xs'>
+              <span className='flex items-center font-poly font-semibold text-white opacity-100 gap-2 drop-shadow-xs'>
                 {payLabel}
                 {payTokenIcon ? (
-                  <Icon name={'bet69'} className='size-5 text-white' />
+                  <Icon name={payTokenIcon} className='size-5 text-white' />
                 ) : (
                   <Icon name='arrow-right' className='size-6' />
                 )}

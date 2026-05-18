@@ -11,8 +11,13 @@ export const orderFields = {
   currency: v.string(),
   status: orderStatus,
   totalCents: v.number(),
+  productId: v.string(),
+  productName: v.string(),
+  productDescription: v.string(),
+  productLevel: v.number(),
   processingFeeCents: v.number(),
   totalWithCryptoFeeCents: v.number(),
+  stakeId: v.optional(v.id('stakes')),
   payment: v.object({
     status: v.union(v.literal('pending'), v.literal('paid'), v.literal('cancelled')),
     txnId: v.string(),

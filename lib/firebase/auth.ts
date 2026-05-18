@@ -1,8 +1,9 @@
 'use client'
 
+import { getFirebaseCustomClaimsFromIdTokenResult, type FirebaseCustomClaims } from '@/lib/firebase/custom-claims'
 import {
   GoogleAuthProvider,
-  onAuthStateChanged,
+  onIdTokenChanged,
   signInWithPopup,
   signOut,
   type User,
@@ -28,18 +29,64 @@ export async function signInWithGoogle(): Promise<UserCredential> {
 
 export function useFirebaseUser() {
   const [user, setUser] = useState<User | null>(null)
+  const [customClaims, setCustomClaims] = useState<FirebaseCustomClaims>({})
+  const [hasAdminClaim, setHasAdminClaim] = useState(false)
   const [isLoading, setIsLoading] = useState(Boolean(auth))
 
   useEffect(() => {
     if (!auth) return
 
-    return onAuthStateChanged(auth, (nextUser) => {
+    let isCancelled = false
+    let latestTokenRequest = 0
+
+    const unsubscribe = onIdTokenChanged(auth, (nextUser) => {
+      latestTokenRequest += 1
+      const requestId = latestTokenRequest
+
       setUser(nextUser)
-      setIsLoading(false)
+
+      if (!nextUser) {
+        setCustomClaims({})
+        setHasAdminClaim(false)
+        setIsLoading(false)
+        return
+      }
+
+      void nextUser
+        .getIdTokenResult()
+        .then((tokenResult) => {
+          if (isCancelled || requestId !== latestTokenRequest) {
+            return
+          }
+
+          const nextCustomClaims = getFirebaseCustomClaimsFromIdTokenResult(tokenResult)
+          setCustomClaims(nextCustomClaims)
+          setHasAdminClaim(nextCustomClaims.admin === true)
+        })
+        .catch(() => {
+          if (isCancelled || requestId !== latestTokenRequest) {
+            return
+          }
+
+          setCustomClaims({})
+          setHasAdminClaim(false)
+        })
+        .finally(() => {
+          if (isCancelled || requestId !== latestTokenRequest) {
+            return
+          }
+
+          setIsLoading(false)
+        })
     })
+
+    return () => {
+      isCancelled = true
+      unsubscribe()
+    }
   }, [])
 
-  return { isLoading, user }
+  return { customClaims, hasAdminClaim, isLoading, user }
 }
 
 export async function signOutUser(): Promise<void> {

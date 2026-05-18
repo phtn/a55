@@ -180,7 +180,7 @@ export function PayAmount({
             <h3 className='px-2 font-brk text-xs md:text-sm uppercase opacity-70 dark:text-slate-300'>You pay</h3>
           </div>
           <div className='flex items-center justify-between text-xs md:text-base'>
-            <div className='text-right px-2'>
+            <div className='font-display text-right px-2'>
               <MoneyFormat value={usdValue} />
             </div>
             <div className='flex items-center space-x-8'>

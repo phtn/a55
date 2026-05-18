@@ -1,8 +1,14 @@
+import { getSharedCookieDomain } from '@/lib/routing/admin-subdomain'
+
 const SESSION_ENDPOINT = '/api/auth/session'
 
 export const firebaseSessionCookieName = 'stake-street-session'
 export const firebaseSessionCookieMaxAgeMs = 5 * 24 * 60 * 60 * 1000
 export const firebaseSessionCookieMaxAgeSeconds = firebaseSessionCookieMaxAgeMs / 1000
+
+export function getFirebaseSessionCookieDomain(hostname: string) {
+  return getSharedCookieDomain(hostname)
+}
 
 type SessionErrorPayload = {
   error?: unknown

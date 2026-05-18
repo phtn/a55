@@ -1,4 +1,4 @@
-import { CompanyPageData } from '@/app/company/[symbol]/types'
+import { CompanyPageData } from '@/app/(site)/company/[symbol]/types'
 import { ChartConfig } from '@/components/evilcharts/ui/chart'
 
 const POSITIVE_CHART_COLOR = 'var(--foreground)'

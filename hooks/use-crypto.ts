@@ -42,7 +42,7 @@ export function useCrypto(options: UseCryptoOptions = {}): UseCryptoReturn {
           includeNetworkTokens: String(includeNetworkTokens),
           limit: String(limit)
         })
-        const response = await fetch(`/api/crypto/quotes?${params}`)
+        const response = await fetch(`/api/quotes?${params}`)
         const result: CryptoApiResponse = await response.json()
 
         if (result.success) {

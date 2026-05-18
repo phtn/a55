@@ -4,7 +4,7 @@ export const adminSchema = v.object({
   identifier: v.string(),
   value: v.object({
     type: v.string(),
-    data: v.object({}),
+    data: v.object({ key: v.string(), value: v.string() }),
     updatedAt: v.number()
   })
 })
