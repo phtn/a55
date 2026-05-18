@@ -1,6 +1,6 @@
 import { Icon } from '@/lib/icons'
 import { motion } from 'motion/react'
-import { tickerSymbol } from './ticker'
+import { Token } from './token-coaster'
 
 const CONFETTI_COLORS = ['#222222', '#d1499b', '#7dd3fc', '#d1499b', '#111111', '#d1499b'] as const
 
@@ -31,7 +31,7 @@ const CONFETTI_PARTICLES = Array.from({ length: 36 }, (_, index) => {
 
 interface PaymentSuccessProps {
   tokenAmount: string
-  tokenSymbol: string
+  tokenSymbol: Token | null
   usdValue: number | null
   hash: `0x${string}` | null
   explorerUrl: string | null
@@ -106,7 +106,7 @@ export const PaymentSuccess = ({ tokenAmount, tokenSymbol, usdValue, hash, explo
             <span className='text-sm font-polysans font-medium uppercase opacity-80 text-white'>Amount</span>
             <div className='flex flex-col items-end'>
               <span className='text-sm font-okxs text-white'>
-                {tokenAmount} <span className='uppercase opacity-70'>{tickerSymbol(tokenSymbol)}</span>
+                {tokenAmount} <span className='uppercase opacity-70'>{tokenSymbol}</span>
               </span>
               {usdValue !== null && (
                 <p className='text-sm font-okxs leading-none flex items-center space-x-1 text-white'>

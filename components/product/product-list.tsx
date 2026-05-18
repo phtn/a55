@@ -2,9 +2,9 @@
 
 import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
-import type { PaymentSuccessContext } from '@/lib/appkit/types'
-import { PayTab } from '@/lib/appkit/pay'
 import { useSearchParams } from '@/lib/appkit/params-ctx'
+import { PayTab } from '@/lib/appkit/pay'
+import type { PaymentSuccessContext } from '@/lib/appkit/types'
 import { Icon, IconName } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { useMutation } from 'convex/react'
@@ -315,6 +315,7 @@ export const ProductList = ({ accountId }: ProductListProps) => {
             </Button>
             <PayTab
               onReset={handleClosePay}
+              orderNumber={activeOrder?.id}
               onPaymentSuccess={handlePaymentSuccess}
               addressInputRef={addressInputRef}
               amountInputRef={amountInputRef}
@@ -326,7 +327,9 @@ export const ProductList = ({ accountId }: ProductListProps) => {
               tokenPrice={null}
               defaultPaymentAmountUsd={requiredUsdValue?.toFixed(2)}
             />
-            {orderError ? <p className='border-t border-border/40 px-6 py-4 text-sm text-red-500'>{orderError}</p> : null}
+            {orderError ? (
+              <p className='border-t border-border/40 px-6 py-4 text-sm text-red-500'>{orderError}</p>
+            ) : null}
           </div>
         </div>
       ) : null}

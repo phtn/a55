@@ -4,14 +4,33 @@ import { LogoNameType } from '@/lib/icons/logos'
 import { getPathnamePageTitle } from '@/lib/page-titles'
 import { cn } from '@/lib/utils'
 import { useAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react'
-import { usePathname } from 'next/navigation'
-import { Activity, Ref, useCallback, useEffect, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Activity, ChangeEvent, Ref, SubmitEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { PixelGrid } from 'three-px-react'
 import { usePageTitle } from './page-title-provider'
 import { Typewrite } from './text/typewriter'
 import { useTheme } from './theme-provider'
 import { ThemeToggle } from './theme-toggle'
 import { Button } from './ui/button'
+
+const normalizeWebsiteUrl = (website: string) => {
+  if (/^https?:\/\//i.test(website)) {
+    return website
+  }
+
+  return `https://${website}`
+}
+
+const getWebsiteLabel = (website: string) => {
+  try {
+    return new URL(normalizeWebsiteUrl(website)).hostname.replace(/^www\./, '')
+  } catch {
+    return website
+      .replace(/^https?:\/\//i, '')
+      .replace(/^www\./, '')
+      .replace(/\/$/, '')
+  }
+}
 
 const normalizeWalletAddress = (address: string | null | undefined) => {
   if (!address) return null
@@ -24,7 +43,13 @@ const formatWalletAddress = (address: string | null) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-export const TopBar = () => {
+interface TopBarProps {
+  companyWebsite?: string | null
+}
+
+export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProps) => {
+  const [query, setQuery] = useState('')
+  const navigate = useRouter()
   const pathname = usePathname()
   const { open: openAppKit } = useAppKit()
   const { caipNetwork } = useAppKitNetwork()
@@ -34,9 +59,12 @@ export const TopBar = () => {
   const { address: bitcoinWalletAddress, isConnected: isBitcoinWalletConnected } = useAppKitAccount({
     namespace: 'bip122'
   })
-  const { title } = usePageTitle()
+  const { title, website } = usePageTitle()
   const { resolvedTheme } = useTheme()
   const pageTitle = title ?? getPathnamePageTitle(pathname ?? '')
+  const companyWebsite = companyWebsiteProp ?? website
+  const websiteUrl = companyWebsite ? normalizeWebsiteUrl(companyWebsite) : null
+  const websiteLabel = companyWebsite ? getWebsiteLabel(companyWebsite) : null
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const activeChainNamespace = caipNetwork?.chainNamespace
@@ -57,6 +85,14 @@ export const TopBar = () => {
   const walletButtonLabel = formatWalletAddress(connectedAddress)
   const isWalletConnected = connectedNamespace !== null
 
+  const handleSearch = (e: SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (query.trim()) {
+      navigate.push(`/company/${query.trim().toUpperCase()}`)
+      setQuery('')
+    }
+  }
+  const handleSearchQueryChange = (e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)
   const handleWalletConnectorClick = useCallback(async () => {
     try {
       if (isWalletConnected) {
@@ -95,7 +131,7 @@ export const TopBar = () => {
         <div id='primary' className='flex h-full w-full items-center px-4 md:px-8'>
           <div className='flex w-full max-w-6xl items-center justify-between gap-4'>
             <div className='flex min-w-0 items-center gap-4'>
-              <StakeHeader resolvedTheme={resolvedTheme} />
+              <StreetHeader resolvedTheme={resolvedTheme} />
               <Typewrite
                 id='company-name'
                 text={pageTitle}
@@ -121,7 +157,14 @@ export const TopBar = () => {
                 </Activity>
               </Button>
             </div>
-            {/*<StreetToolbar />*/}
+            <StreetToolbar
+              websiteLabel={websiteLabel}
+              websiteUrl={websiteUrl}
+              searchInputRef={searchInputRef}
+              handleSearch={handleSearch}
+              handleSearchQueryChange={handleSearchQueryChange}
+              searchQuery={query}
+            />
           </div>
         </div>
       </div>
@@ -133,18 +176,7 @@ interface TopbarHeader {
   route?: string
   resolvedTheme: 'dark' | 'light'
 }
-export const StakeHeader = ({ resolvedTheme }: TopbarHeader) => {
-  return (
-    <div className='flex items-center justify-center size-5 aspect-square'>
-      <PixelGrid
-        animation='snake'
-        color={resolvedTheme === 'dark' ? '#f5f5f5' : '#CCC'}
-        className='md:scale-96 scale-85'
-        duration={1200}
-      />
-    </div>
-  )
-}
+
 export const StreetHeader = ({ route, resolvedTheme }: TopbarHeader) => {
   return (
     <div className='flex items-center justify-center size-5 aspect-square'>
@@ -166,11 +198,11 @@ export const StreetHeader = ({ route, resolvedTheme }: TopbarHeader) => {
 }
 
 interface StreetToolbarProps {
-  websiteUrl?: string
-  websiteLabel?: string
+  websiteUrl: string | null
+  websiteLabel: string | null
   searchInputRef: Ref<HTMLInputElement>
-  handleSearch: VoidFunction
-  handleSearchQueryChange: VoidFunction
+  handleSearch: (e: SubmitEvent<HTMLFormElement>) => void
+  handleSearchQueryChange: (e: ChangeEvent<HTMLInputElement>) => void
   searchQuery: string
 }
 export const StreetToolbar = ({

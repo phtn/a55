@@ -25,9 +25,7 @@ export const PayButtons = ({
   isPayDisabled,
   isPayProcessing,
   payLabel,
-  enablePayHoverStyles,
-  payToken,
-  nativeSymbol
+  payToken
 }: PayButtonsProps) => {
   const payTokenIcon: IconName = tokenIcons[payToken as Token]
 

@@ -1,6 +1,6 @@
-import {IconName} from '@/lib/icons'
-import {Dispatch, Ref, SetStateAction} from 'react'
-import type {PayNetworkName} from './pay-config'
+import { IconName } from '@/lib/icons'
+import { Dispatch, Ref, SetStateAction } from 'react'
+import type { PayNetworkName } from './pay-config'
 
 export interface Balance {
   value: bigint
@@ -22,10 +22,8 @@ export interface PaymentSuccessContext {
 
 export interface PayTabProps {
   onSend?: VoidFunction
-  onPaymentSuccess?: (
-    transactionHash: `0x${string}`,
-    context?: PaymentSuccessContext,
-  ) => void | Promise<void>
+  orderNumber?: string
+  onPaymentSuccess?: (transactionHash: `0x${string}`, context?: PaymentSuccessContext) => void | Promise<void>
   formattedBalance: string | null
   balance: Balance | null
   tokenPrice: number | null
