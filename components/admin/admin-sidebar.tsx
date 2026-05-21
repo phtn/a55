@@ -19,7 +19,9 @@ const navItems: { icon: IconName; label: string; path: string }[] = [
   { icon: 'theme', label: 'Overview', path: '/' },
   { icon: 'theme', label: 'Configs', path: '/configs' },
   { icon: 'cf-pen', label: 'Users', path: '/users' },
-  { icon: 'information', label: 'Stakes', path: '/stakes' }
+  { icon: 'information', label: 'Stakes', path: '/stakes' },
+  { icon: 're-up.ph', label: 'Analytics', path: '/analytics' },
+  { icon: 'refresh', label: 'Roulette', path: '/roulette' }
 ]
 
 export const AdminSidebar = () => {
