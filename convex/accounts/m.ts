@@ -1,10 +1,17 @@
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { mutation } from '../_generated/server'
 import { accountFieldSchema } from './d'
+import { getUserByTokenIdentifier } from '../users/q'
+
+const formatHistoryMonthLabel = (timestamp: number) =>
+  new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short'
+  })
 
 export const upsertByTokenId = mutation({
   args: accountFieldSchema,
-  handler: async ({ db }, args) => {
+  handler: async (ctx, args) => {
+    const { db } = ctx
     const existingAcct = await db
       .query('accounts')
       .withIndex('by_sub', (q) => q.eq('sub', args.sub))
@@ -21,13 +28,37 @@ export const upsertByTokenId = mutation({
       return existingAcct._id
     }
 
-    return await db.insert('accounts', {
+    const user = await getUserByTokenIdentifier(ctx, args.tokenIdentifier)
+
+    if (!user) {
+      throw new ConvexError('Cannot create account history without an existing user.')
+    }
+
+    const accountId = await db.insert('accounts', {
       ...args,
       title: 'Account 1',
       stakes: [],
       createdAt: now,
       updatedAt: now
     })
+
+    await db.insert('history', {
+      userId: user._id,
+      accountId,
+      txnId: null,
+      amount: 0,
+      type: 'seed',
+      change: 0,
+      changePct: 0,
+      summary: {
+        label: formatHistoryMonthLabel(now),
+        balance: 0
+      },
+      createdAt: now,
+      updatedAt: now
+    })
+
+    return accountId
   }
 })
 

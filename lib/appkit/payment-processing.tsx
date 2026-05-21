@@ -36,23 +36,23 @@ export const PaymentProcessing = ({ tokenAmount, tokenSymbol, usdValue }: Paymen
               />
             </div>
             <div className='absolute w-5 h-5 border border-transparent rounded-full aspect-square overflow-hidden flex items-center justify-center blur-sm'>
-              <Icon name='spinner-ring' className='size-5 text-lime-100/80' />
+              <Icon name='spinner-ring' className='size-5 text-background-100/80' />
             </div>
           </div>
           <div className='text-center space-y-1'>
-            <p className='font-poly font-semibold text-lg text-white/80'>Processing Payment</p>
-            <p className='font-display text-white/70 text-sm'>Please confirm in your wallet</p>
+            <p className='font-poly font-semibold text-lg text-background'>Processing Payment</p>
+            <p className='font-display text-background text-sm'>Please confirm in your wallet</p>
           </div>
         </div>
-        <div className='hidden mt-6 pt-4 border-t border-white/10 border-dashed space-y-3'>
+        <div className='hidden mt-6 pt-4 border-t border-background/10 border-dashed space-y-3'>
           <div className='flex items-center justify-between'>
-            <span className='text-sm font-polysans font-medium uppercase text-white opacity-70'>Amount</span>
+            <span className='text-sm font-polysans font-medium uppercase text-background opacity-70'>Amount</span>
             <div className='text-right flex flex-col items-end'>
-              <span className='text-sm font-okxs text-white'>
+              <span className='text-sm font-okxs text-background'>
                 {tokenAmount} <span className='uppercase opacity-70'>{tickerSymbol(tokenSymbol)}</span>
               </span>
               {usdValue !== null && (
-                <p className='text-sm font-okxs leading-none flex items-center space-x-1 text-white'>
+                <p className='text-sm font-okxs leading-none flex items-center space-x-1 text-background'>
                   <span className='space-x-1'>
                     <span className='font-medium'>
                       {usdValue.toLocaleString('en-US', {

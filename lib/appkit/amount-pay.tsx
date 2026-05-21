@@ -1,8 +1,8 @@
-import {TokenBalance} from '@/hooks/use-network-tokens'
-import {motion} from 'motion/react'
-import {Dispatch, SetStateAction} from 'react'
-import {Title} from './components'
-import {Token} from './token-coaster'
+import { TokenBalance } from '@/hooks/use-network-tokens'
+import { motion } from 'motion/react'
+import { Dispatch, SetStateAction } from 'react'
+import { Title } from './components'
+import { Token } from './token-coaster'
 
 interface AmountPayInputProps {
   selectedTokenBalance: TokenBalance | null
@@ -18,15 +18,15 @@ export const AmountPayInput = ({
   selectedToken,
   paymentAmountUsd,
   setPaymentAmountUsd,
-  getTokenPrice,
+  getTokenPrice
 }: AmountPayInputProps) => {
   return (
     <motion.div
       layout
-      initial={{opacity: 0, y: 10}}
-      animate={{opacity: 1, y: 0}}
-      exit={{opacity: 0, y: -10}}
-      transition={{layout: {duration: 0.3, ease: 'easeInOut'}}}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
       className='mt-4 hidden '>
       <div className='flex justify-between items-center mb-2'>
         <Title id='pay-amount'>Amount to Pay (USD)</Title>
@@ -41,18 +41,14 @@ export const AmountPayInput = ({
               }
             }}
             className='text-xs md:hover:text-indigo-300 transition-colors'>
-            <span className='uppercase font-okxs font-bold dark:text-indigo-200'>
-              Max
-            </span>{' '}
+            <span className='uppercase font-okxs font-bold dark:text-indigo-200'>Max</span>{' '}
             <span className='font-okxs'>
               {tokenAmount.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 6,
+                maximumFractionDigits: 6
               })}
             </span>
-            <span className='font-okxs font-light opacity-50 ml-1 uppercase'>
-              {selectedToken}
-            </span>
+            <span className='font-okxs font-light opacity-50 ml-1 uppercase'>{selectedToken}</span>
           </button>
         )}
       </div>
@@ -76,7 +72,7 @@ export const AmountPayInput = ({
               ≈{' '}
               {tokenAmount.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 6,
+                maximumFractionDigits: 6
               })}{' '}
               <span className='uppercase'>{selectedToken}</span>
             </div>

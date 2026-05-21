@@ -7,10 +7,17 @@ const REF_NUMBER_PREFIX = 'ORD'
 
 const normalizeCents = (value: number) => Math.max(0, Math.round(value))
 const normalizeNumber = (value: number) => (Number.isFinite(value) ? Math.max(0, value) : 0)
+const centsToAmount = (value: number) => normalizeCents(value) / 100
+const formatHistoryMonthLabel = (timestamp: number) =>
+  new Date(timestamp).toLocaleDateString('en-US', {
+    month: 'short'
+  })
 
 async function createUniqueRefNumber(db: MutationCtx['db']) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const candidate = `${REF_NUMBER_PREFIX}-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1_000_000)
+    const candidate = `${REF_NUMBER_PREFIX}-${Date.now().toString(36).toUpperCase()}-${Math.floor(
+      Math.random() * 1_000_000
+    )
       .toString()
       .padStart(6, '0')}`
     const existingOrder = await db
@@ -103,7 +110,7 @@ export const confirmOrderPayment = mutation({
     orderId: v.id('orders'),
     stakeId: v.id('stakes')
   }),
-  handler: async (ctx, { id, txnId, asset, chain, nativeValue, usdValue }) => {
+  handler: async (ctx, { id, txnId: paymentTxnId, asset, chain, nativeValue, usdValue }) => {
     const order = await ctx.db.get(id)
 
     if (!order) {
@@ -129,14 +136,18 @@ export const confirmOrderPayment = mutation({
       throw new ConvexError('User not found for order account.')
     }
 
+    const existingStakeIds = (account.stakes ?? []).flatMap((stakeId) => (stakeId ? [stakeId] : []))
+    const existingStakes = await Promise.all(existingStakeIds.map((stakeId) => ctx.db.get(stakeId)))
+    const currentBalance = existingStakes.reduce((total, stake) => total + (stake?.amount ?? 0), 0)
+    const orderAmount = centsToAmount(order.totalCents)
     const now = Date.now()
     const stakeId = await ctx.db.insert('stakes', {
       accountId: order.accountId,
       userId: user._id,
-      amount: order.totalCents / 100,
+      amount: orderAmount,
       title: order.productName,
       level: order.productLevel,
-      isStaked: true,
+      isStaked: false,
       isActive: true,
       createdAt: now,
       updatedAt: now
@@ -148,10 +159,37 @@ export const confirmOrderPayment = mutation({
       updatedAt: now
     })
 
+    const txnRecordId = await ctx.db.insert('txns', {
+      userId: user._id,
+      accountId: order.accountId,
+      amount: orderAmount,
+      title: order.productName,
+      description: `Completed order ${order.refNumber}`,
+      status: 'posted',
+      createdAt: now,
+      updatedAt: now
+    })
+
+    await ctx.db.insert('history', {
+      userId: user._id,
+      accountId: order.accountId,
+      txnId: txnRecordId,
+      amount: orderAmount,
+      type: 'order_completed',
+      change: orderAmount,
+      changePct: currentBalance === 0 ? 0 : (orderAmount / currentBalance) * 100,
+      summary: {
+        label: formatHistoryMonthLabel(now),
+        balance: currentBalance + orderAmount
+      },
+      createdAt: now,
+      updatedAt: now
+    })
+
     await ctx.db.patch(order._id, {
       payment: {
         status: 'paid',
-        txnId,
+        txnId: paymentTxnId,
         asset: asset === undefined ? order.payment.asset : asset,
         chain: chain?.trim() ? chain : order.payment.chain,
         nativeValue: nativeValue == null ? order.payment.nativeValue : nativeValue,
@@ -177,6 +215,10 @@ export const updateOrder = mutation({
 
     if (!order) {
       return null
+    }
+
+    if (order.status !== 'completed' && value.status === 'completed') {
+      throw new ConvexError('Use confirmOrderPayment to complete an order.')
     }
 
     await ctx.db.patch(order._id, {

@@ -12,7 +12,7 @@ import { getUsdtAddress, isUsdtSupportedChain } from '@/lib/tokens/usdt'
 import { cn } from '@/lib/utils'
 import { useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Activity, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Activity, startTransition, useCallback, useEffect, useMemo, useRef, useState, ViewTransition } from 'react'
 import { parseUnits, type Address } from 'viem'
 import { useChainId, useChains, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { AmountPayInput } from './amount-pay'
@@ -648,6 +648,8 @@ export const PayTab = ({
   const activeIsConfirming = localIsConfirming || isConfirming
   const activeHash = localHash || hash
   const activeReceipt = localReceipt || receipt
+  const isPaymentConfirmed = activeReceipt?.status === 'success'
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(() => isPaymentConfirmed)
   const paymentSuccessContext = useMemo<PaymentSuccessContext | undefined>(() => {
     if (!tokenForTxState) return undefined
 
@@ -670,6 +672,12 @@ export const PayTab = ({
   }, [tokenForTxState, lastPaymentChainId, chainId, lastRelayNativeValue, lastRelayUsdValue])
   const reportedSuccessHashRef = useRef<`0x${string}` | null>(null)
   const relayedPaymentHashRef = useRef<`0x${string}` | null>(null)
+
+  useEffect(() => {
+    startTransition(() => {
+      setShowPaymentSuccess(isPaymentConfirmed)
+    })
+  }, [isPaymentConfirmed])
 
   useEffect(() => {
     if (!onPaymentSuccess || !activeHash || !activeReceipt || activeReceipt.status !== 'success') {
@@ -920,10 +928,11 @@ export const PayTab = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-      className='space-y-0 w-full p-1 md:p-4 md:h-160 flex flex-col'>
+      className={cn('space-y-0 w-full p-1 md:p-4 flex flex-col md:h-160', { 'md:h-110': showPaymentSuccess })}>
       <div>
-        {paymentAmountUsd && payableUsdValue !== null && !activeReceipt && (
+        {paymentAmountUsd && payableUsdValue !== null && (
           <PayAmount
+            label={showPaymentSuccess ? 'PAID ✓' : 'You pay'}
             spinRandomAmount={spinRandomAmount}
             usdValue={payableUsdValue}
             paymentRequestUri={paymentRequestUri}
@@ -943,60 +952,68 @@ export const PayTab = ({
           />
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
-          className='space-y-6 md:px-4 transition-transform duration-200'>
-          <div className='px-2 font-display font-base flex items-center justify-between capitalize'>
-            <span>Your Tokens</span>
-            <div className='flex items-center space-x-2'>
-              <span className='opacity-70'>network</span>
-              <span className='font-medium px-2 capitalize'>{currentNetwork}</span>
-            </div>
-          </div>
-          <motion.div
-            layout
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className={cn('overflow-y-auto', {
-              'h-28': availableTokens.length <= 1,
-              'h-56': availableTokens.length > 1
-            })}>
-            {(isBitcoinNetworkSelected ? isBitcoinBalanceLoading : tokensLoading) ? (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className='flex items-center justify-center h-24'>
-                <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
-              </motion.div>
-            ) : availableTokens.length > 0 ? (
-              <Tokens
-                tokens={availableTokens}
-                tokenBalances={tokenBalances}
-                selectedToken={selectedToken}
-                paymentAmountUsd={paymentAmountUsd}
-                tokenPrices={{
-                  usdc: 1,
-                  usdt: 1,
-                  ethereum: nativeTokenPrice,
-                  bitcoin: bitcoinPrice
-                }}
-                nativeSymbol={nativeSymbol}
-                listHeightClassName='h-54'
-                onTokenSelect={handleTokenSelect}
-              />
-            ) : (
-              <div className='relative h-24 overflow-hidden flex items-center justify-center text-foreground/60 text-sm'>
-                <motion.div className='space-y-3 sm:space-y-4 opacity-60 bg-blend-lighten blur-3xl w-full h-full absolute -top-1 right-0 bg-top-right' />
-                <p className=' line-clamp-2 max-w-[18ch] text-center font-okxs'>
-                  No tokens with balance found on this network
-                </p>
+        <ViewTransition>
+          {showPaymentSuccess ? (
+            <PaymentSuccess key='payment-success' orderNumber={orderNumber} transactionId={activeHash} />
+          ) : (
+            <motion.div
+              key='token-list'
+              id='token-list'
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ layout: { duration: 0.3, ease: 'easeInOut' } }}
+              className='space-y-6 md:px-4 transition-transform duration-200'>
+              <div className='px-2 font-display font-base flex items-center justify-between capitalize'>
+                <span>Your Tokens</span>
+                <div className='flex items-center space-x-2'>
+                  <span className='opacity-70'>network</span>
+                  <span className='font-medium px-2 capitalize'>{currentNetwork}</span>
+                </div>
               </div>
-            )}
-          </motion.div>
-        </motion.div>
+              <motion.div
+                layout
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className={cn('overflow-y-auto', {
+                  'h-28': availableTokens.length <= 1,
+                  'h-56': availableTokens.length > 1
+                })}>
+                {(isBitcoinNetworkSelected ? isBitcoinBalanceLoading : tokensLoading) ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className='flex items-center justify-center h-24'>
+                    <Icon name='spinner-ring' className='w-6 h-6 text-white/40' />
+                  </motion.div>
+                ) : availableTokens.length > 0 ? (
+                  <Tokens
+                    tokens={availableTokens}
+                    tokenBalances={tokenBalances}
+                    selectedToken={selectedToken}
+                    paymentAmountUsd={paymentAmountUsd}
+                    tokenPrices={{
+                      usdc: 1,
+                      usdt: 1,
+                      ethereum: nativeTokenPrice,
+                      bitcoin: bitcoinPrice
+                    }}
+                    nativeSymbol={nativeSymbol}
+                    listHeightClassName='h-54'
+                    onTokenSelect={handleTokenSelect}
+                  />
+                ) : (
+                  <div className='relative h-24 overflow-hidden flex items-center justify-center text-foreground/60 text-sm'>
+                    <motion.div className='space-y-3 sm:space-y-4 opacity-60 bg-blend-lighten blur-3xl w-full h-full absolute -top-1 right-0 bg-top-right' />
+                    <p className=' line-clamp-2 max-w-[18ch] text-center font-okxs'>
+                      No tokens with balance found on this network
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </ViewTransition>
 
         <AnimatePresence mode='wait'>
           <motion.div layout className='mt-0'>
@@ -1027,9 +1044,7 @@ export const PayTab = ({
           />
         </div>
       </Activity>
-      <Activity mode={onPaymentSuccess ? 'visible' : 'hidden'}>
-        <PaymentSuccess orderNumber={orderNumber} transactionId={hash} />
-      </Activity>
+
       <ReceiptModal
         open={showReceiptModal}
         onClose={() => setShowReceiptModal(false)}

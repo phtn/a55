@@ -22,10 +22,10 @@ const tokenIconByToken: Record<Token, IconName> = {
 export const TokenCoaster = ({ token, nativeSymbol, size = 'md' }: TokenProps) => {
   return (
     <div className='size-10 relative flex items-center justify-center'>
-      <div className={cn('absolute size-7 aspect-square rounded-full bg-white')} />
+      <div className={cn('absolute size-9 aspect-square rounded-full bg-foreground')} />
       <Icon
         name={tokenIconByToken[token]}
-        className={cn('relative size-8 text-foreground', {
+        className={cn('relative size-10 text-background', {
           // 'text-foreground': token === 'ethereum',
           // 'text-polygon': token === 'pol' || token === 'matic' || nativeSymbol === 'matic',
           // 'text-bitcoin': token === 'bitcoin',

@@ -35,13 +35,15 @@ export const RecentTxn = ({ txns }: RecentTxnProps) => {
   // const previewTransactions = txns.slice(0, 4)
 
   return (
-    <section className='rounded-xl border border-border/50 bg-border/4 p-4 sm:p-6'>
+    <section className='rounded-md border border-border/20 bg-border/20 p-2 sm:p-4 md:p-6'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
-        <div>
-          <Eyebrow>Recent Txn</Eyebrow>
-          <h2 className='mt-2 font-display text-2xl font-semibold tracking-tight text-foreground'>Activity</h2>
+        <div className='w-full'>
+          <div className='flex items-center justify-between w-full'>
+            <Eyebrow>Recents</Eyebrow>
+            <Eyebrow>Txn {txns.length}</Eyebrow>
+          </div>
+          <h2 className='mt-2 font-display font-semibold text-foreground text-xl tracking-tight'>Activity</h2>
         </div>
-        <p className='text-sm text-muted-foreground'>0 txn</p>
       </div>
 
       <div className='mt-6 space-y-2'>

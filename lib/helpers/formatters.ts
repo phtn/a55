@@ -44,7 +44,7 @@ export const toNumber = (value: unknown) => {
   return null
 }
 
-export const formatCurrency = (value: number, currencyCode: string) =>
+export const formatCurrency = (value: number, currencyCode?: string) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currencyCode || DEFAULT_CURRENCY_CODE,
@@ -52,7 +52,8 @@ export const formatCurrency = (value: number, currencyCode: string) =>
     maximumFractionDigits: 2
   }).format(value)
 
-export const formatCompactCurrency = (value: number, currencyCode: string) =>
+export const formatSignedCurrency = (value: number) => `${value >= 0 ? '+' : '-'}${formatCurrency(Math.abs(value))}`
+export const formatCompactCurrency = (value: number, currencyCode?: string) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currencyCode || DEFAULT_CURRENCY_CODE,

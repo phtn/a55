@@ -36,9 +36,12 @@ const USD_CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
 
 interface ProductListProps {
   accountId: Id<'accounts'> | null
+  isPayModalOpen: boolean
+  onPayModalOpenChange: (open: boolean) => void
+  onClose: VoidFunction
 }
 
-export const ProductList = ({ accountId }: ProductListProps) => {
+export const ProductList = ({ accountId, isPayModalOpen, onPayModalOpenChange, onClose }: ProductListProps) => {
   const createOrder = useMutation(api.orders.m.createOrder)
   const confirmOrderPayment = useMutation(api.orders.m.confirmOrderPayment)
   const { setParams } = useSearchParams()
@@ -75,7 +78,6 @@ export const ProductList = ({ accountId }: ProductListProps) => {
   const selectedProductDetails = products.find((product) => product.id === selectedProduct[0]) ?? null
   const selectedProductPricePhp = selectedProductDetails?.price ?? 0
   const requiredProductPricePhp = selectedProductPricePhp * 1
-  const [isPaying, setIsPaying] = useState(false)
   const [isCreatingOrder, setIsCreatingOrder] = useState(false)
   const [isConfirmingOrder, setIsConfirmingOrder] = useState(false)
   const [orderError, setOrderError] = useState<string | null>(null)
@@ -119,7 +121,7 @@ export const ProductList = ({ accountId }: ProductListProps) => {
     setSelectedProduct(PRODUCT_IDS)
   }
   const resetPayState = () => {
-    setIsPaying(false)
+    onPayModalOpenChange(false)
     setPaymentAmount('')
     setActiveOrder(null)
     setOrderError(null)
@@ -180,7 +182,7 @@ export const ProductList = ({ accountId }: ProductListProps) => {
         amount: null,
         to: null
       })
-      setIsPaying(true)
+      onPayModalOpenChange(true)
     } catch (error) {
       setOrderError(error instanceof Error ? error.message : 'Failed to create order.')
     } finally {
@@ -205,7 +207,6 @@ export const ProductList = ({ accountId }: ProductListProps) => {
         nativeValue: context?.nativeValue ?? undefined,
         usdValue: context?.usdValue ?? requiredUsdValue ?? undefined
       })
-      resetPayState()
     } catch (error) {
       paymentSyncedTxHashRef.current = null
       setOrderError(error instanceof Error ? error.message : 'Failed to confirm order payment.')
@@ -218,21 +219,26 @@ export const ProductList = ({ accountId }: ProductListProps) => {
   return (
     <>
       <section className='h-80 md:h-96'>
-        <div className='min-h-84 md:min-h-96 rounded-md bg-linear-to-r from-border/5 via-border/20 to-border/5 px-4 py-2'>
+        <div className='min-h-84 md:min-h-96 rounded-md bg-linear-to-r from-border/5 via-border/20 to-border/5 px-2 md:px-4 py-2'>
           <div className='flex items-center justify-between'>
             <h2 className='flex items-center space-x-3 h-14 font-display font-medium'>
               <Icon name='tag-chevron' className='opacity-80' />
               <span>Add Stake</span>
             </h2>
-            {selectedProduct.length < 3 && (
-              <Button onClick={handleViewAll} variant='ghost'>
-                View All
+            {selectedProduct.length < 3 ? (
+              <Button onClick={handleViewAll} variant='ghost' className='rounded-md'>
+                Show All
+              </Button>
+            ) : (
+              <Button onClick={onClose} variant='ghost' className='rounded-md'>
+                <Icon name='close' className='opacity-80' />
+                <span>Close</span>
               </Button>
             )}
           </div>
           <div
             className={cn(
-              'flex items-start justify-start p-4 md:p-8 h-64 md:h-75 bg-foreground/25 rounded-lg overflow-scroll',
+              'flex items-start justify-start p-2 sm:p-4 md:p-8 h-64 md:h-75 bg-foreground/15 rounded-lg overflow-scroll',
               { 'bg-foreground/15': selectedProduct.length < 3 }
             )}>
             <ul className='flex items-center space-x-4 md:space-x-8'>
@@ -298,9 +304,10 @@ export const ProductList = ({ accountId }: ProductListProps) => {
         </div>
       </section>
 
-      {isPaying ? (
+      {isPayModalOpen ? (
         <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-background/75 p-4 backdrop-blur-sm'
+          id='pay-modal'
+          className='h-screen fixed inset-0 z-50 flex items-center justify-center bg-background/75 p-4 backdrop-blur-sm'
           onClick={handleClosePay}>
           <div
             className='relative w-full max-w-4xl overflow-hidden rounded-2xl border border-border/40 bg-sidebar shadow-2xl'
@@ -315,7 +322,7 @@ export const ProductList = ({ accountId }: ProductListProps) => {
             </Button>
             <PayTab
               onReset={handleClosePay}
-              orderNumber={activeOrder?.id}
+              orderNumber={activeOrder?.refNumber}
               onPaymentSuccess={handlePaymentSuccess}
               addressInputRef={addressInputRef}
               amountInputRef={amountInputRef}

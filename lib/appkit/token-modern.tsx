@@ -1,4 +1,3 @@
-import { Icon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
 import { tickerSymbol } from './ticker'
@@ -47,21 +46,11 @@ export const TokenModern = ({
   return (
     <div className='flex items-center justify-start w-full py-1 gap-4'>
       <div className={cn(`relative rounded-3xl flex items-center justify-center w-auto h-6 md:h-10 aspect-square`)}>
-        <Icon
-          name='squircle'
-          className={cn('size-14 text-foreground absolute', {
-            'text-foreground': token === 'usdt'
-            // 'text-foreground': token === 'ethereum',
-            // 'text-foreground': token === 'usdc',
-            // 'text-foreground': token === 'ethereum' && nativeSymbol === 'matic',
-            // 'text-foreground': token === 'bitcoin',
-          })}
-        />
         <TokenCoaster nativeSymbol={nativeSymbol} size='lg' token={token} />
       </div>
       <div className='font-display flex items-center justify-between w-full'>
         <div className='text-left -space-y-px'>
-          <p className='font-medium'>
+          <p className='font-medium uppercase'>
             {tickerSymbol(token === 'ethereum' ? (nativeSymbol === 'matic' ? 'polygon' : 'ethereum') : token)}
           </p>
           <p className={cn('')}>

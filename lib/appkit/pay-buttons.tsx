@@ -49,15 +49,15 @@ export const PayButtons = ({
             onClick={onPay}
             disabled={isPayDisabled}
             className={cn(
-              'font-poly font-semibold flex items-center justify-center w-full mx-auto h-14 text-lg bg-foreground text-white border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-sm'
+              'font-poly font-semibold flex items-center justify-center w-full mx-auto h-14 bg-foreground text-background text-lg border-0 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed rounded-sm'
             )}>
             {isPayProcessing ? (
               <Icon name='spinner-ring' className='w-5 h-5' />
             ) : (
-              <span className='flex items-center font-poly font-semibold text-white opacity-100 gap-2 drop-shadow-xs'>
+              <span className='flex items-center font-poly font-medium opacity-100 gap-2 drop-shadow-xs uppercase'>
                 {payLabel}
                 {payTokenIcon ? (
-                  <Icon name={payTokenIcon} className='size-5 text-white' />
+                  <Icon name={payTokenIcon} className='size-5' />
                 ) : (
                   <Icon name='arrow-right' className='size-6' />
                 )}

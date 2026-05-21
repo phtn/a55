@@ -18,6 +18,7 @@ export interface PayAmountProps {
   tokenAmountFormatted: string
   /** Token symbol (e.g. "ETH", "USDC") */
   symbol: string
+  label?: string
 }
 
 function PayQrModal({
@@ -157,7 +158,8 @@ export function PayAmount({
   paymentRequestUri,
   recipient,
   tokenAmountFormatted,
-  symbol
+  symbol,
+  label
 }: PayAmountProps) {
   const [showQrModal, setShowQrModal] = useState(false)
 
@@ -175,9 +177,11 @@ export function PayAmount({
           ease: 'easeInOut'
         }}
         className='mt-3'>
-        <div className='p-1 md:p-4 border-b decoration-1 decoation-dotted border-white/10 space-y-1'>
+        <div className='p-1 md:p-4 decoration-1 decoation-dotted border-white/10 space-y-1'>
           <div className='flex items-center space-x-0'>
-            <h3 className='px-2 font-brk text-xs md:text-sm uppercase opacity-70 dark:text-slate-300'>You pay</h3>
+            <h3 className='px-2 font-brk text-xs md:text-sm uppercase opacity-70 dark:text-slate-300'>
+              {label ?? 'You pay'}
+            </h3>
           </div>
           <div className='flex items-center justify-between text-xs md:text-base'>
             <div className='font-display text-right px-2'>

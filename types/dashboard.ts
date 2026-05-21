@@ -1,1 +1,1 @@
-export type Page = 'markets' | 'explore' | 'watchlist' | 'bets'
+export type Page = 'accounts' | 'stakes' | 'bets'

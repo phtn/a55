@@ -17,7 +17,6 @@ interface MenuItem {
 const navItems: MenuItem[] = [
   { icon: 'arrow-right', label: 'Accounts', path: '/x', color: 'hsl(187,90%,51%)' },
   { icon: 'arrow-right', label: 'Stakes', path: '/x/stakes', color: 'hsl(280,65%,60%)' },
-  // { icon: 'arrow-right', label: 'Watchlist', path: '/watchlist', color: 'hsl(38,92%,55%)' },
   { icon: 'arrow-right', label: 'Bets', path: '/x/bets', color: 'hsl(160,70%,45%)' }
 ]
 

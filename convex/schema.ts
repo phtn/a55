@@ -3,9 +3,11 @@ import { accountSchema } from './accounts/d'
 import { adminSchema } from './admin/d'
 import { contactWalletAddressesSchema } from './contact_wallet_addresses/d'
 import { contactsSchema } from './contacts/d'
+import { historySchema } from './history/d'
 import { orderSchema } from './orders/d'
 import { stakeSchema } from './stakes/d'
 import { transactionsSchema } from './transactions/d'
+import { txnSchema } from './txns/d'
 import { userCryptoWalletsSchema } from './user_crypto_wallets/d'
 import { userSchema } from './users/d'
 
@@ -27,5 +29,10 @@ export default defineSchema({
   transactions: defineTable(transactionsSchema).index('by_userId', ['userId']),
   accounts: defineTable(accountSchema).index('by_sub', ['sub']),
   stakes: defineTable(stakeSchema).index('by_userId', ['userId']).index('by_accountId', ['accountId']),
-  orders: defineTable(orderSchema).index('by_refNumber', ['refNumber'])
+  orders: defineTable(orderSchema).index('by_refNumber', ['refNumber']),
+  history: defineTable(historySchema)
+    .index('by_userId', ['userId'])
+    .index('by_accountId', ['accountId'])
+    .index('by_txnId', ['txnId']),
+  txns: defineTable(txnSchema).index('by_userId', ['userId']).index('by_accountId', ['accountId'])
 })
