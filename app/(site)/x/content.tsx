@@ -24,6 +24,7 @@ const XContent = () => {
   const stakeIds = account?.stakes ?? null
   const stakes = useQuery(api.stakes.q.listStakesById, stakeIds ? { ids: stakeIds } : 'skip')
   const history = useQuery(api.history.q.listByAccountId, account?._id ? { accountId: account._id } : 'skip') ?? null
+  const txns = useQuery(api.txns.q.listByAccountId, account?._id ? { accountId: account._id } : 'skip') ?? null
   const updateTitle = useMutation(api.accounts.m.updateTitle)
   const [title, setTitle] = useState('')
   const { on: showProductList, toggle: toggleProductList } = useToggle(false)
@@ -131,7 +132,7 @@ const XContent = () => {
         <AccountBalance stakes={stakes ?? []} history={history} toggleProductList={toggleProductList} />
       )}
 
-      <div>{isStakesLoading || shouldShowProductList ? <FaqsSec /> : <RecentTxn txns={[]} balance={0} />}</div>
+      <div>{isStakesLoading || shouldShowProductList ? <FaqsSec /> : <RecentTxn txns={txns} balance={0} />}</div>
     </div>
   )
 }

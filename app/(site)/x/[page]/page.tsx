@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/app-shell'
+import { ConvexClientProvider } from '@/ctx/convex/client'
 import { getRoutePageTitle } from '@/lib/page-titles'
 import { type Page } from '@/types/dashboard'
 import { Metadata } from 'next'
@@ -31,9 +32,11 @@ export const generateMetadata = async ({ params }: PageProps): Promise<Metadata>
 const Page = async ({ params }: PageProps) => {
   const { page } = await params
   return (
-    <AppShell>
-      <AnimatedContent key={page} page={page} />
-    </AppShell>
+    <ConvexClientProvider>
+      <AppShell>
+        <AnimatedContent key={page} page={page} />
+      </AppShell>
+    </ConvexClientProvider>
   )
 }
 export default Page

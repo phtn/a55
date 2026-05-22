@@ -9,7 +9,6 @@ import { Activity, Ref, useCallback, useEffect, useRef } from 'react'
 import { PixelGrid } from 'three-px-react'
 import { usePageTitle } from './page-title-provider'
 import { Typewrite } from './text/typewriter'
-import { useTheme } from './theme-provider'
 import { ThemeToggle } from './theme-toggle'
 import { Button } from './ui/button'
 
@@ -35,7 +34,6 @@ export const TopBar = () => {
     namespace: 'bip122'
   })
   const { title } = usePageTitle()
-  const { resolvedTheme } = useTheme()
   const pageTitle = title ?? getPathnamePageTitle(pathname ?? '')
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
@@ -95,13 +93,13 @@ export const TopBar = () => {
         <div id='primary' className='flex h-full w-full items-center px-4 md:px-8'>
           <div className='flex w-full max-w-6xl items-center justify-between gap-4'>
             <div className='flex min-w-0 items-center gap-4'>
-              <StakeHeader resolvedTheme={resolvedTheme} />
+              {/*<StakeHeader resolvedTheme={resolvedTheme} />*/}
               <Typewrite
                 id='company-name'
                 text={pageTitle}
                 showCursor={false}
                 speed={22}
-                className='truncate font-display font-medium text-foreground/90 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
+                className='truncate font-poly font-semibold text-foreground/90 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
               />
             </div>
             <div className='shrink-0'>

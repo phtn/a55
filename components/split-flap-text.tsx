@@ -379,7 +379,7 @@ function SplitFlapIconFace({
         position === 'top' ? 'translate-y-[0.45em]' : 'translate-y-[-0.45em]'
       }`}
       aria-hidden='true'>
-      <Icon name={iconName} className='size-8 scale-90 shrink-0' color={color} />
+      <Icon name={iconName} className='size-8 scale-90 shrink-0 opacity-60' color={color} />
     </div>
   )
 }

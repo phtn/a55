@@ -9,7 +9,6 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useRouter } from 'next/navigation'
 import { Ref, useEffect, useRef, useState } from 'react'
-import { SignOutButton } from './signout-button'
 import { Button } from './ui/button'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -90,7 +89,6 @@ export function HeroSection() {
       />
 
       <div className='fixed bottom-8 right-8 md:bottom-12 md:right-12'>
-        <SignOutButton />
         <div className='border border-border px-3 py-1 font-cm text-[8px] lowercase tracking-widest text-muted-foreground'>
           stake-st v0.10
         </div>
@@ -121,7 +119,13 @@ const Hero = ({
     <div ref={contentRef} className='flex flex-col items-center flex-1 justify-center w-full grayscale'>
       <SplitFlapAudioProvider>
         <div className='relative'>
-          <SplitFlapText text='stake*street' speed={64} size='2.5rem' iconName='bet69' />
+          <SplitFlapText
+            text='36*stake*St'
+            speed={64}
+            size='2.5rem'
+            className='font-display font-medium'
+            iconName='left-small'
+          />
           <div className='mt-4 hidden'>
             <SplitFlapMuteToggle />
           </div>
