@@ -70,32 +70,29 @@ export const FooterSection = () => {
   }, [])
 
   return (
-    <section ref={sectionRef} id='footer' className='relative pt-2 px-10 _pl-6 _md:pl-8 _lg:ml-54 _max-w-6xl'>
+    <section ref={sectionRef} id='footer' className='relative pt-2 px-10 pl-6 md:pl-8 lg:ml-54 max-w-6xl'>
       {/* Section header */}
-      <Header title='Stake Street' tag='QUICK LINKS' id='+' ref={headerRef} />
+      <Header title='36 Stake Street' tag='Guide' id='+' ref={headerRef} />
 
       {/* Multi-column layout */}
       <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-4 gap-4 pb-8'>
         {/* Payment Methods */}
         <div className='col-span-1'>
-          <ColumnHeader title='Fund' />
+          <ColumnHeader title='Step 1' />
           <ColumnItems items={[{ id: 'fund', name: 'Fund Account' }]} />
         </div>
-
-        {/* Alternative Rails */}
-        <div className='col-span-1'>
-          <ColumnHeader title='Transfer' />
-          <ColumnItems items={[{ id: 'transfer', name: 'Transfer Funds' }]} />
-        </div>
-
         {/* Connectivity */}
         <div className='col-span-1'>
-          <ColumnHeader title='Stake' />
-          <ColumnItems items={[{ id: 'stake', name: 'Stake Assets' }]} />
+          <ColumnHeader title='Step 2' />
+          <ColumnItems items={[{ id: 'stake', name: 'Buy Stakes' }]} />
         </div>
         <div className='col-span-1'>
-          <ColumnHeader title='Bets' />
-          <ColumnItems items={[{ id: 'high-risk', name: 'High Gain' }]} />
+          <ColumnHeader title='Step 3' />
+          <ColumnItems items={[{ id: 'high-risk', name: 'Activate Bets' }]} />
+        </div>
+        <div className='col-span-1'>
+          <ColumnHeader title='Step 4' />
+          <ColumnItems items={[{ id: 'high-risk', name: 'Win Daily' }]} />
         </div>
       </div>
 
@@ -103,8 +100,7 @@ export const FooterSection = () => {
       <div
         ref={footerRef}
         className='mt-2 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
-        <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>© 2026 Stake Street</p>
-        <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'></p>
+        <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>©2026 36 Stake Street</p>
       </div>
     </section>
   )

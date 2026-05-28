@@ -3,29 +3,9 @@
 import { JsonViewer } from '@/components/data/json-viewer'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useApi } from '@/hooks/use-api'
-import type { LobbyHistories } from '@/types/histories'
+import { formatDateTime } from '@/lib/helpers/formatters'
+import { LobbyHistoriesResponse } from '@/lib/roulette/types'
 import { rtnMap } from './rtn-map'
-
-interface LobbyHistoriesResponse {
-  success: boolean
-  hasData?: boolean
-  data?: LobbyHistories | null
-  receivedAt?: string | null
-  error?: string
-}
-
-const formatTimestamp = (value: string | null) => {
-  if (!value) {
-    return 'Waiting for data'
-  }
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleString()
-}
 
 const getTableName = (tableId: string) => rtnMap[tableId] ?? tableId
 
@@ -46,7 +26,7 @@ export const Content = () => {
       <div className='w-full'>
         <div className='bg-background/70 flex items-center justify-between w-full'>
           <p className='font-display text-base font-medium tracking-tight'>Roulette Histories</p>
-          <p>{formatTimestamp(response?.receivedAt ?? null)}</p>
+          <p>{formatDateTime(response?.receivedAt ?? null)}</p>
         </div>
       </div>
 

@@ -84,7 +84,10 @@ export const formatDateLabel = (value: string) => {
   })
 }
 
-export const formatDateTime = (value: string) => {
+export const formatDateTime = (value: string | null) => {
+  if (!value) {
+    return 'N/A'
+  }
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {

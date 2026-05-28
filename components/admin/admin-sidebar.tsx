@@ -112,7 +112,7 @@ export const AdminSidebar = () => {
             items={[{ id: 'sign-out', label: 'Sign Out', content: <SignOutButton /> }]}
             triggerClassName='h-auto rounded-full border-transparent bg-transparent p-0 text-inherit hover:bg-transparent active:bg-transparent data-popup-open:bg-transparent focus-visible:outline-1 focus-visible:outline-ring'>
             <Avatar size='sm'>
-              <AvatarImage alt='pfp' src={user?.photoURL ?? undefined} />
+              <AvatarImage alt='pfp' src={user?.photoURL ?? undefined} className='grayscale' />
               <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
             </Avatar>
           </Menu>

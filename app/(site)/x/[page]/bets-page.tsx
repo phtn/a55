@@ -7,46 +7,10 @@ import { Tab, Tabs } from '@/components/ui/tabs'
 import { useApi } from '@/hooks/use-api'
 import { useToggle } from '@/hooks/use-toggle'
 import { Icon } from '@/lib/icons'
+import { ROULETTE_BOARD_ROWS, TABLE_NODE_KEYS, TONE_CLASSES } from '@/lib/roulette/constants'
+import { BetsResponse, StatTile, TableNode, Tone } from '@/lib/roulette/types'
 import type { BetResult } from '@/types/bets'
 import { useMemo } from 'react'
-
-interface BetsResponse {
-  success: boolean
-  hasData?: boolean
-  message?: string
-  receivedAt?: string
-  data?: BetResult | string
-}
-
-const TABLE_NODE_KEYS = ['controls', 'virtualBoard', 'spin', 'result', 'bet', 'placed'] as const
-
-interface TableNode {
-  title: string
-  data: Record<string, unknown>
-}
-
-type Tone = 'good' | 'bad' | 'warn' | 'info' | 'neutral'
-
-interface StatTile {
-  label: string
-  value: string
-  detail: string
-  tone: Tone
-}
-
-const ROULETTE_BOARD_ROWS = [
-  [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],
-  [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],
-  [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34]
-]
-
-const toneClasses: Record<Tone, string> = {
-  good: 'border-emerald-500/35 bg-emerald-500/5 text-emerald-700 dark:text-emerald-200',
-  bad: 'border-rose-500/35 bg-rose-500/5 text-rose-700 dark:text-rose-200',
-  warn: 'border-amber-500/35 bg-amber-500/5 text-amber-700 dark:text-amber-200',
-  info: 'border-sky-500/35 bg-sky-500/5 text-sky-700 dark:text-sky-200',
-  neutral: 'border-border bg-background text-foreground'
-}
 
 const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2
@@ -183,7 +147,7 @@ const getTableNodes = (value: unknown): TableNode[] => {
 }
 
 const StatCard = ({ label, value, detail, tone }: StatTile) => (
-  <div className={`min-w-0 rounded-md border p-3 ${toneClasses[tone]}`}>
+  <div className={`min-w-0 rounded-md border p-3 ${TONE_CLASSES[tone]}`}>
     <div className='flex items-start justify-between gap-3'>
       <p className='font-display text-[8px] uppercase tracking-[0.18em] text-foreground/55'>{label}</p>
       <span className='mt-0.5 size-1.5 shrink-0 rounded-full bg-current' />

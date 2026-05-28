@@ -1,4 +1,4 @@
-import type { LobbyHistories, LobbyHistoryEntry } from '@/types/histories'
+import type { LobbyHistories, LobbyHistoryEntry } from '@/lib/roulette/types'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -78,9 +78,7 @@ const normalizeHistories = (value: unknown): LobbyHistoryEntry[] | null => {
   return singleEntry ? [singleEntry] : null
 }
 
-const normalizeLobbyHistories = (
-  value: unknown
-): { data: LobbyHistories | null; error?: string } => {
+const normalizeLobbyHistories = (value: unknown): { data: LobbyHistories | null; error?: string } => {
   if (!isRecord(value)) {
     return { data: null, error: 'Request body must be a JSON object' }
   }
@@ -106,15 +104,13 @@ const normalizeLobbyHistories = (
     return { data: null, error: 'pageUrl must be a string' }
   }
 
-  const captureUrl =
-    typeof value.captureUrl === 'string' ? value.captureUrl : value.pageUrl
+  const captureUrl = typeof value.captureUrl === 'string' ? value.captureUrl : value.pageUrl
 
   const histories = normalizeHistories(value.histories)
   if (!histories) {
     return {
       data: null,
-      error:
-        'histories must be a history object or array of history objects with tableId and numeric numbers'
+      error: 'histories must be a history object or array of history objects with tableId and numeric numbers'
     }
   }
 
@@ -170,9 +166,7 @@ export async function POST(req: NextRequest) {
       return jsonResponse(
         {
           success: false,
-          error:
-            normalized.error ??
-            'Request body does not match the LobbyHistories schema'
+          error: normalized.error ?? 'Request body does not match the LobbyHistories schema'
         },
         400
       )
@@ -186,9 +180,7 @@ export async function POST(req: NextRequest) {
     console.log(
       'Lobby histories received:',
       latestLobbyHistories.data.histories.length,
-      latestLobbyHistories.data.histories
-        .map((history) => history.tableId)
-        .join(', ')
+      latestLobbyHistories.data.histories.map((history) => history.tableId).join(', ')
     )
 
     return jsonResponse({
