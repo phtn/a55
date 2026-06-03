@@ -1,7 +1,6 @@
 'use client'
 
 import type {Token} from '@/lib/appkit/token-coaster'
-import {config} from '@/ctx/wagmi/config'
 import {
   ERC20_BALANCE_ABI,
   getUsdcAddress,
@@ -13,10 +12,9 @@ import {
   isUsdtSupportedChain,
 } from '@/lib/usdt'
 import {useAppKitAccount} from '@reown/appkit/react'
-import {getBalance} from '@wagmi/core'
-import {useEffect, useMemo, useState} from 'react'
+import {useMemo} from 'react'
 import {formatUnits, isAddress, type Address} from 'viem'
-import {useChainId, useReadContract} from 'wagmi'
+import {useBalance, useChainId, useReadContract} from 'wagmi'
 
 export interface TokenBalance {
   token: Token
@@ -57,9 +55,15 @@ export function useNetworkTokens(): NetworkTokensResult {
   )
 
   // Fetch native ETH balance
-  const [ethBalance, setEthBalance] = useState<bigint | null>(null)
-  const [ethLoading, setEthLoading] = useState(false)
-  const [ethError, setEthError] = useState<Error | null>(null)
+  const {
+    data: ethBalanceRaw,
+    isLoading: ethLoading,
+    error: ethError,
+  } = useBalance({
+    address: evmAddress,
+    chainId,
+    query: {enabled: Boolean(evmAddress)},
+  })
 
   // Fetch USDC balance
   const {
@@ -101,32 +105,6 @@ export function useNetworkTokens(): NetworkTokensResult {
     query: {enabled: Boolean(usdtAddress)},
   })
 
-  // Fetch ETH balance
-  useEffect(() => {
-    if (!evmAddress) {
-      setEthBalance(null)
-      setEthLoading(false)
-      return
-    }
-
-    setEthLoading(true)
-    getBalance(config, {
-      address: evmAddress,
-      chainId,
-    })
-      .then((bal) => {
-        setEthBalance(bal.value)
-        setEthError(null)
-      })
-      .catch((err) => {
-        setEthError(err as Error)
-        setEthBalance(null)
-      })
-      .finally(() => {
-        setEthLoading(false)
-      })
-  }, [evmAddress, chainId])
-
   const usdcDecimals =
     usdcDecimalsRaw !== undefined ? Number(usdcDecimalsRaw) : 6
   const usdcValue = usdcBalanceRaw ?? BigInt(0)
@@ -143,8 +121,9 @@ export function useNetworkTokens(): NetworkTokensResult {
     [usdtValue, usdtDecimals],
   )
 
+  const ethBalance = ethBalanceRaw?.value ?? null
   const ethFormatted = useMemo(() => {
-    if (!ethBalance) return '0'
+    if (ethBalance === null) return '0'
     // ETH uses 18 decimals
     return formatUnits(ethBalance, 18)
   }, [ethBalance])
@@ -161,7 +140,7 @@ export function useNetworkTokens(): NetworkTokensResult {
         formatted: ethFormatted,
         decimals: 18,
         isLoading: ethLoading,
-        error: ethError,
+        error: ethError as Error | null,
       })
     }
 

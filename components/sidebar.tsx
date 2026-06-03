@@ -2,7 +2,6 @@
 
 import { preloadExploreData } from '@/lib/explore-data'
 import { useFirebaseUser } from '@/lib/firebase/auth'
-import { createFirebaseSession } from '@/lib/firebase/session'
 import { getInitials } from '@/lib/helpers/user'
 import { Icon, IconName } from '@/lib/icons'
 import { preloadMarketsData } from '@/lib/markets-data'
@@ -69,22 +68,25 @@ export const Sidebar = () => {
       const currentUrl = new URL(window.location.href)
       const idToken = await user.getIdToken(true)
 
-      if (!supportsAdminSubdomain(currentUrl.hostname)) {
-        await createFirebaseSession(idToken)
-        window.location.assign('/admin')
-        return
-      }
+      // Determine target hostname for the handoff.
+      // - When subdomain isolation is supported (custom domain with admin. DNS), go to admin.<host>
+      // - Otherwise (Vercel previews, localhost in some cases, etc.) do same-origin handoff at /admin-handoff
+      // This ensures we *always* go through /api/auth/admin-handoff which verifies the admin claim
+      // and mints the session cookie with the correct domain attributes.
+      const targetHostname = supportsAdminSubdomain(currentUrl.hostname)
+        ? toAdminSubdomainHostname(currentUrl.hostname)
+        : currentUrl.hostname
 
-      const adminUrl = new URL(window.location.href)
-      adminUrl.hostname = toAdminSubdomainHostname(currentUrl.hostname)
-      adminUrl.pathname = adminSubdomainHandoffPath
-      adminUrl.search = ''
-      adminUrl.hash = new URLSearchParams({
+      const handoffUrl = new URL(currentUrl.origin)
+      handoffUrl.hostname = targetHostname
+      handoffUrl.pathname = adminSubdomainHandoffPath
+      handoffUrl.search = ''
+      handoffUrl.hash = new URLSearchParams({
         idToken,
-        redirectTo: '/'
+        redirectTo: '/admin'
       }).toString()
 
-      window.location.assign(adminUrl.toString())
+      window.location.assign(handoffUrl.toString())
     } catch (error) {
       console.error('Failed to navigate to the admin app.', error)
       setIsNavigatingToAdmin(false)
@@ -155,7 +157,11 @@ export const Sidebar = () => {
               onClick={() => {
                 void handleAdminNavigation()
               }}>
-              <Icon name='imperial' className='size-5' onClick={undefined} />
+              {isNavigatingToAdmin ? (
+                <Icon name='spinner-ring' className='size-4 animate-spin' />
+              ) : (
+                <Icon name='imperial' className='size-5' onClick={undefined} />
+              )}
             </Button>
           ) : null}
         </div>

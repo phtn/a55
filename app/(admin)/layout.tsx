@@ -9,9 +9,17 @@ export default function AdminRootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang='en' suppressHydrationWarning className={rootHtmlClassName}>
       <body className='min-h-full flex flex-col'>
-        <Script id='theme-script' strategy='beforeInteractive'>
-          {THEME_SCRIPT}
-        </Script>
+        {/* 
+          Critical theme script - must run before React hydrates to prevent FOUC.
+          Using dangerouslySetInnerHTML on next/script avoids React 19's warning
+          about <script> tags as component children.
+          See: rendering-hydration-no-flicker rule in Vercel best practices.
+        */}
+        <Script
+          id='theme-script'
+          strategy='beforeInteractive'
+          dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
+        />
         <RootProviders>{children}</RootProviders>
       </body>
     </html>

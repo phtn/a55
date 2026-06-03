@@ -55,12 +55,19 @@ export const AdminSidebar = () => {
 
     try {
       const currentUrl = new URL(window.location.href)
-      currentUrl.hostname = supportsAdminSubdomain(currentUrl.hostname)
+
+      // When leaving admin, always land back on the main origin.
+      // - Subdomain mode: strip "admin." so we return to the primary domain
+      // - Same-origin mode (Vercel, forced off, etc.): stay on current hostname
+      const targetHostname = supportsAdminSubdomain(currentUrl.hostname)
         ? stripAdminSubdomain(currentUrl.hostname)
         : currentUrl.hostname
+
+      currentUrl.hostname = targetHostname
       currentUrl.pathname = '/x'
       currentUrl.search = ''
       currentUrl.hash = ''
+
       window.location.assign(currentUrl.toString())
     } catch (error) {
       console.error('Failed to exit the admin app.', error)
@@ -128,7 +135,11 @@ export const AdminSidebar = () => {
               onClick={() => {
                 void handleAdminExit()
               }}>
-              <Icon name='crown-coin' className='size-5' />
+              {isExitingAdmin ? (
+                <Icon name='spinner-ring' className='size-4 animate-spin' />
+              ) : (
+                <Icon name='crown-coin' className='size-5' />
+              )}
             </Button>
           ) : null}
         </div>

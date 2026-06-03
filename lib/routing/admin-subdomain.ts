@@ -2,6 +2,31 @@ export const adminRoutePrefix = '/admin'
 export const adminSubdomainLabel = 'admin'
 export const adminSubdomainHandoffPath = '/admin-handoff'
 
+export type AdminSubdomainMode = 'auto' | 'force' | 'off'
+
+/**
+ * Controls admin subdomain behavior.
+ *
+ * - 'auto' (default): Use subdomain when the hostname supports it (custom domains with proper DNS).
+ *   Falls back to same-origin /admin-handoff on Vercel previews and IPs.
+ * - 'force': Always attempt admin subdomain handoff (use when you have wildcard DNS even on custom vercel domains).
+ * - 'off': Never use subdomain. Everything stays on the main origin using /admin-handoff + /admin paths.
+ *
+ * Can be set via ADMIN_SUBDOMAIN_MODE or NEXT_PUBLIC_ADMIN_SUBDOMAIN_MODE.
+ */
+function resolveAdminSubdomainMode(): AdminSubdomainMode {
+  const raw =
+    (typeof process !== 'undefined' && process.env
+      ? process.env.ADMIN_SUBDOMAIN_MODE ?? process.env.NEXT_PUBLIC_ADMIN_SUBDOMAIN_MODE
+      : undefined) ?? 'auto'
+
+  if (raw === 'force') return 'force'
+  if (raw === 'off') return 'off'
+  return 'auto'
+}
+
+export const adminSubdomainMode: AdminSubdomainMode = resolveAdminSubdomainMode()
+
 function normalizeHostname(hostname: string) {
   return hostname.trim().toLowerCase().replace(/\.$/, '')
 }
@@ -51,9 +76,40 @@ export function stripAdminSubdomain(hostname: string) {
   return normalizedHostname.slice(adminSubdomainLabel.length + 1)
 }
 
+function isVercelHostname(hostname: string) {
+  const normalized = normalizeHostname(hostname)
+  return normalized.endsWith('.vercel.app') || normalized.endsWith('.vercel.dev')
+}
+
 export function supportsAdminSubdomain(hostname: string) {
   const normalizedHostname = normalizeHostname(hostname)
-  return normalizedHostname.length > 0 && !isIpHostname(normalizedHostname)
+
+  if (normalizedHostname.length === 0) {
+    return false
+  }
+
+  if (isIpHostname(normalizedHostname)) {
+    return false
+  }
+
+  if (adminSubdomainMode === 'off') {
+    return false
+  }
+
+  if (adminSubdomainMode === 'force') {
+    // When forced, we still block IPs but allow everything else (including vercel domains
+    // if the user has configured the domain + DNS properly).
+    return true
+  }
+
+  // 'auto' mode: Vercel preview/production vercel.app domains cannot reliably support
+  // the admin.* subdomain without explicit wildcard DNS + domain configuration.
+  // On these hosts we fall back to same-origin admin handoff at /admin-handoff.
+  if (isVercelHostname(normalizedHostname)) {
+    return false
+  }
+
+  return true
 }
 
 export function toAdminSubdomainHostname(hostname: string) {
