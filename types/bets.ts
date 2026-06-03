@@ -1,3 +1,5 @@
+import { EvoTableGameState } from '@/lib/roulette/types'
+
 export interface BetResult {
   type: string
   schemaVersion: number
@@ -32,7 +34,7 @@ export interface BetResult {
     spins: number
     trackedSpins: number
     hotNumbers: number[]
-    tableState: string
+    tableState: EvoTableGameState
     winningNumber: number
     nextBet: {
       round: number

@@ -42,3 +42,10 @@ export interface LobbyHistoriesResponse {
   receivedAt?: string | null
   error?: string
 }
+
+export type EvoTableGameState =
+  | 'GAME_RESOLVED'
+  | 'BETS_OPEN'
+  | 'BETS_CLOSED'
+  | 'BETS_CLOSING_SOON'
+  | 'BETS_CLOSED_ANNOUNCED'

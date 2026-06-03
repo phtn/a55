@@ -67,8 +67,20 @@ export const formatCompactNumber = (value: number) =>
     maximumFractionDigits: value >= 1_000_000_000 ? 2 : 1
   }).format(value)
 
-export const formatPercentValue = (value: number) => `${value >= 0 ? '' : ''}${value.toFixed(2)}%`
+export const formatPercentValue = (value: number | undefined) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 'N/A'
+  }
+  return `${value >= 0 ? '' : ''}${value.toFixed(2)}%`
+}
 
+export const clampPercent = (value: number | undefined) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 0
+  }
+
+  return Math.max(0, Math.min(100, value))
+}
 export const formatRatioPercentValue = (value: number) => `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`
 
 export const formatDateLabel = (value: string) => {

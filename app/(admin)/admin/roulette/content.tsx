@@ -270,7 +270,7 @@ const getNumberCellClass = ({
 
 const RouletteNumberGrid = ({ result }: { result: BetResult }) => {
   const hotNumbers = new Set(result.virtualBoard?.hotNumbers ?? [])
-  const placedNumbers = new Set(result.placed?.numbers ?? [])
+  const placedNumbers = new Set([...(result.placed?.cumulativeNumbers ?? []), ...(result.placed?.numbers ?? [])])
   const nextNumbers = new Set(result.virtualBoard?.nextBet?.numbers ?? result.bet?.numbers ?? [])
   const winningNumber = result.spin?.winningNumber ?? result.virtualBoard?.winningNumber
 

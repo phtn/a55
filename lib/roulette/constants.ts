@@ -1,10 +1,10 @@
 import { Tone } from './types'
 
-export type KQuadrantId = 'q1' | 'q2' | 'q3' | 'q4' | 'q5' | 'q6' | 'q7' | 'q8' | 'q9' | 'q10' | 'q11' | 'q12'
+export type QId = 'q1' | 'q2' | 'q3' | 'q4' | 'q5' | 'q6' | 'q7' | 'q8' | 'q9' | 'q10' | 'q11' | 'q12'
 export type KAlgoRound = 1 | 2 | 3 | 4 | 5
 export type KSpreadSelectionMode = 'within' | 'across'
 
-export const KIMS_ALGO_QUADRANTS: Record<KQuadrantId, readonly number[]> = {
+export const K_QUADS: Record<QId, readonly number[]> = {
   q1: [1, 2, 5, 4],
   q2: [2, 3, 6, 5],
   q3: [7, 8, 11, 10],
