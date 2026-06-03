@@ -74,7 +74,7 @@ export const Fab = () => {
         return (
           <div
             key={item.path}
-            className={`fixed bottom-8 right-8 z-50 transition-[transform,opacity] duration-300 ease-in-out _[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`fixed bottom-8 portrait:right-8 landscape:right-1 z-50 transition-[transform,opacity] duration-300 ease-in-out _[cubic-bezier(0.22,1,0.36,1)] ${
               open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
             }`}
             style={{
