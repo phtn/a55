@@ -133,3 +133,55 @@ At the very bottom, add a **summary box** that recaps the 3 focus areas and 5 ur
 This way it feels organized, not overwhelming, and works well on mobile too.
 
 ---
+
+
+```ts
+
+let x: number | undefined
+
+function run() {
+  if (x){
+    sqrUp(x) 
+  }
+}
+
+function sqrUp(x: number){
+  x**2**2
+
+  const y = 'string'
+}
+
+function foo(z: {x: number}) {
+  continue
+}
+
+function bar(y: {x: number}){
+  continue
+}
+
+function baz(args: {y:number}): ReturnType<{y:number}> {
+  const t = args.y + 4
+}
+
+class Foo {
+  serialize(type: string) {
+  if (type === 'json') {
+    return JSON.stringify(this)
+    }
+  }
+  private serializeBuffer(): Buffe{
+    continue
+  }
+}
+
+
+
+
+
+```
+
+
+
+
+
+

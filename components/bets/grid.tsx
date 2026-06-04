@@ -31,9 +31,7 @@ export const RouletteNumberGrid = ({ result }: { result: BetResult }) => {
   const key = result.controls.signalFound && Object.keys(K_QUADS).find((q) => K_QUADS[q as QId].includes(winningNumber))
   const firstQuad = result.result.round === 0 && result.controls.signalFound ? K_QUADS[key as QId] : undefined
   const nextNumbers = new Set(
-    (firstQuad ?? result.controls.signalFound)
-      ? (result.virtualBoard?.nextBet?.numbers ?? result.bet?.numbers ?? [])
-      : []
+    result.controls.signalFound ? firstQuad : (result.virtualBoard?.nextBet?.numbers ?? result.bet?.numbers ?? [])
   )
 
   return (
