@@ -71,10 +71,9 @@ export const Board = ({ result }: BoardProps) => {
     <div className='max-sm:relative max-sm:h-dvh max-sm:overflow-hidden'>
       <div
         ref={boardRef}
-        className='max-sm:absolute max-sm:left-1/2 max-sm:top-1/2 max-sm:origin-center max-sm:-translate-x-1/2 max-sm:-translate-y-1/2 max-sm:rotate-90 max-sm:scale-[var(--board-scale)]'
+        className='max-sm:absolute max-sm:left-1/2 max-sm:top-1/2 max-sm:origin-center max-sm:-translate-x-1/2 max-sm:-translate-y-1/2 max-sm:rotate-90 max-sm:scale-(--board-scale)'
         style={{ '--board-scale': boardScale } as CSSProperties}>
         <RouletteNumberGrid result={result} />
-
         <NumberLegend />
       </div>
     </div>

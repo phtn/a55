@@ -40,7 +40,7 @@ export const RouletteNumberGrid = ({ result }: { result: BetResult }) => {
     <section className='rounded-md border border-border bg-background p-3'>
       <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
         <div>
-          <div className='flex items-center justify-between'>
+          <div className='flex items-center justify-between w-full'>
             <p className='font-display text-[8px] uppercase tracking-[0.2em] text-foreground/50'>
               {tsmap[result.virtualBoard.tableState]}
             </p>
