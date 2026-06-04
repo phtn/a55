@@ -39,7 +39,7 @@ export const RouletteNumberGrid = ({ result }: { result: BetResult }) => {
   return (
     <section className='rounded-md border border-border bg-background p-3'>
       <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
-        <div>
+        <div className='w-full'>
           <div className='flex items-center justify-between w-full'>
             <p className='font-display text-[8px] uppercase tracking-[0.2em] text-foreground/50'>
               {tsmap[result.virtualBoard.tableState]}
@@ -48,10 +48,13 @@ export const RouletteNumberGrid = ({ result }: { result: BetResult }) => {
               className={cn('flex items-center space-x-2 font-display text-[8px] uppercase opacity-70', {
                 'text-emerald-500': key
               })}>
-              <span>{result.controls.signalFound ? `Found in ${key}` : 'Searching'}</span>
+              <div>
+                <span className='tracking-[0.15em] opacity-70'>
+                  {result.controls.signalFound ? `Found in ${key}` : 'Searching'}
+                </span>
+              </div>
             </div>
           </div>
-          {/*<h2 className='mt-1 font-display text-lg font-semibold text-foreground'>Roulette Board</h2>*/}
         </div>
       </div>
       <div className='mt-3 grid grid-cols-[repeat(13,minmax(2.35rem,1fr))] gap-1 overflow-x-auto pb-1'>

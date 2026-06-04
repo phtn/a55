@@ -3,7 +3,6 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useEffect, useRef } from 'react'
-import { Header } from './header'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -75,10 +74,10 @@ export const FooterSection = () => {
       id='footer'
       className='relative pt-2 px-10 pl-6 hidden md:flex md:pl-8 lg:ml-54 max-w-6xl'>
       {/* Section header */}
-      <Header title='36 Stake Street' tag='Guide' id='+' ref={headerRef} />
+      {/*<Header title='36 Stake Street' tag='Guide' id='+' ref={headerRef} />*/}
 
       {/* Multi-column layout */}
-      <div ref={gridRef} className='grid grid-cols-2 md:grid-cols-4 gap-4 pb-8'>
+      <div ref={gridRef} className='hidden _grid grid-cols-2 md:grid-cols-4 gap-4 pb-8'>
         {/* Payment Methods */}
         <div className='col-span-1'>
           <ColumnHeader title='Step 1' />
@@ -103,7 +102,10 @@ export const FooterSection = () => {
       <div
         ref={footerRef}
         className='mt-2 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
-        <p className='font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>©2026 36 Stake Street</p>
+        <div className='flex' />
+        <p className='flex-1 font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>
+          ©2026 36 Stake Street
+        </p>
       </div>
     </section>
   )

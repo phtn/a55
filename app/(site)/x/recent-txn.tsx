@@ -57,7 +57,7 @@ export const RecentTxn = ({ txns }: RecentTxnProps) => {
           return (
             <div
               key={txn._id}
-              className='flex items-center justify-between gap-4 rounded-lg border border-border/40 bg-background/75 p-3'>
+              className='flex items-center justify-between gap-4 rounded-lg border border-border/40 bg-background/75 p-2 md:p-3'>
               <div className='min-w-0'>
                 <div className='flex items-center gap-2'>
                   <p className='truncate font-display text-base font-semibold text-foreground'>{txn.title}</p>
