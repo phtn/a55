@@ -66,7 +66,7 @@ export function StakeItem(stake: Doc<'stakes'>) {
         <div className='flex flex-col gap-6 lg:gap-8 flex-1'>
           <div>
             <h1 className='text-3xl md:text-4xl lg:text-5xl font-poly font-bold text-black tracking-tight mb-1'>
-              {stake.title}
+              {stake.title.split(' ').pop()}
             </h1>
             <p className='font-display text-lg md:text-xl text-gray-600'>₱ {stake.amount}K</p>
           </div>
@@ -74,7 +74,7 @@ export function StakeItem(stake: Doc<'stakes'>) {
           <Button
             onClick={undefined}
             className='w-fit bg-black hover:bg-gray-900 text-white text-lg px-8 py-6 rounded-full font-semibold transition-all duration-200'>
-            Activate {stake.level}
+            Activate
           </Button>
         </div>
 
