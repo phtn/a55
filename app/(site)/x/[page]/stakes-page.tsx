@@ -6,6 +6,10 @@ import { useFirebaseUser } from '@/lib/firebase/auth'
 import { useQuery } from 'convex/react'
 import { PixelGrid } from 'three-px-react'
 
+import { Button } from '@/components/ui/button'
+import { Icon } from '@/lib/icons'
+import Image from 'next/image'
+
 export const generateMetadata = async () => {
   return {
     title: 'Stakes',
@@ -37,6 +41,7 @@ export const Stakes = () => {
             data={stakes}
             keyId='_id'
             itemStyle='border border-b-0 first:border-t last:border-b'
+            container='space-y-8'
           />
         </div>
       ) : (
@@ -51,18 +56,41 @@ export const Stakes = () => {
   )
 }
 
-const StakeItem = (stake: Doc<'stakes'>) => (
-  <div className='h-20 flex items-center w-full p-2 gap-2'>
-    <div className='bg-foreground/10 size-16 flex items-center justify-center font-poly font-semibold text-xl'>
-      {stake.amount}
+export function StakeItem(stake: Doc<'stakes'>) {
+  return (
+    <div className='w-full bg-gray-100 rounded-3xl p-8 md:p-12 lg:p-16 relative overflow-hidden'>
+      <p className='absolute top-5 right-6 font-mono text-background/50 text-xs tracking-widest'>{stake._id}</p>
+      <Image
+        width={500}
+        height={500}
+        src={'/web-app-manifest-512x512.png'}
+        alt={'69'}
+        className='absolute w-fit h-full object-contain transform transition-transform duration-300 top-0 right-0 scale-250 opacity-4'
+      />
+      <div className='flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12'>
+        {/* Left Content Section */}
+        <div className='flex flex-col gap-6 lg:gap-8 flex-1'>
+          <div>
+            <h1 className='text-3xl md:text-4xl lg:text-5xl font-poly font-bold text-black tracking-tight mb-1'>
+              {stake.title}
+            </h1>
+            <p className='font-display text-lg md:text-xl text-gray-600'>₱ {stake.amount}K</p>
+          </div>
+
+          <Button
+            onClick={undefined}
+            className='w-fit bg-black hover:bg-gray-900 text-white text-lg px-8 py-6 rounded-full font-semibold transition-all duration-200'>
+            Activate
+          </Button>
+        </div>
+
+        {/* Right Image Section */}
+        <div className='flex-1 w-full flex justify-center relative'>
+          <div className='relative w-full max-w-md max-h-36 flex justify-end'>
+            <Icon name='crystal-growth' className='size-44 text-black' />
+          </div>
+        </div>
+      </div>
     </div>
-    <p className='size-16 font-display flex items-center justify-center border'>{stake.level}</p>
-    <p className='size-16 font-display flex items-center justify-center border'>{stake.title.split(' ').pop()}</p>
-    <p className='size-16 font-display flex items-center justify-center border'>
-      {stake._id.substring(stake._id.length - 5)}
-    </p>
-    <p className='size-16 font-display flex items-center justify-center border'>
-      {stake.isActive ? 'Active' : 'Inactive'}
-    </p>
-  </div>
-)
+  )
+}
