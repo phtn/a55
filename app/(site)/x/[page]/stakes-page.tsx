@@ -7,7 +7,7 @@ import { useQuery } from 'convex/react'
 import { PixelGrid } from 'three-px-react'
 
 import { Button } from '@/components/ui/button'
-import { Icon } from '@/lib/icons'
+import { Icon, IconName } from '@/lib/icons'
 import Image from 'next/image'
 
 export const generateMetadata = async () => {
@@ -80,17 +80,25 @@ export function StakeItem(stake: Doc<'stakes'>) {
           <Button
             onClick={undefined}
             className='w-fit bg-black hover:bg-gray-900 text-white text-lg px-8 py-6 rounded-full font-semibold transition-all duration-200'>
-            Activate
+            Activate {stake.level}
           </Button>
         </div>
 
         {/* Right Image Section */}
         <div className='flex-1 w-full flex justify-center relative'>
           <div className='relative w-full max-w-md max-h-36 flex justify-end'>
-            <Icon name='crystal-growth' className='size-44 text-black' />
+            <Icon name={lmap[stake.level]} className='size-44 text-[#333]' />
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+const lmap: Record<number, IconName> = {
+  1: 'cash',
+  2: 'diamond-hard',
+  3: 'crystal-growth',
+  4: 'cash',
+  5: 'cash'
 }
