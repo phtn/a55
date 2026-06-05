@@ -36,13 +36,7 @@ export const Stakes = () => {
     <div className='w-6xl'>
       {stakes ? (
         <div className=''>
-          <HyperList
-            component={StakeItem}
-            data={stakes}
-            keyId='_id'
-            itemStyle='border border-b-0 first:border-t last:border-b'
-            container='space-y-8'
-          />
+          <HyperList component={StakeItem} data={stakes} keyId='_id' container='space-y-8' />
         </div>
       ) : (
         <PixelGrid
