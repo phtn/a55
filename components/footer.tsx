@@ -69,10 +69,7 @@ export const FooterSection = () => {
   }, [])
 
   return (
-    <section
-      ref={sectionRef}
-      id='footer'
-      className='relative pt-2 px-10 pl-6 hidden md:flex md:pl-8 lg:ml-54 max-w-6xl'>
+    <section ref={sectionRef} id='footer' className='relative pt-2 pl-6 hidden md:flex md:pl-8 lg:ml-54 max-w-7xl'>
       {/* Section header */}
       {/*<Header title='36 Stake Street' tag='Guide' id='+' ref={headerRef} />*/}
 
@@ -101,11 +98,9 @@ export const FooterSection = () => {
       {/* Bottom copyright */}
       <div
         ref={footerRef}
-        className='mt-2 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+        className='mt-2 py-5.75 border-t border-border/40 border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-7xl'>
         <div className='flex' />
-        <p className='flex-1 font-display text-foreground/40 text-[8px] uppercase tracking-[0.28em]'>
-          ©2026 36 Stake Street
-        </p>
+        <p className='flex-1 font-display text-foreground/60 text-[9px] uppercase tracking-[0.28em]'>©2026 A55</p>
       </div>
     </section>
   )

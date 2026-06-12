@@ -2,7 +2,7 @@ import { Fab } from '@/components/fab'
 import { OverviewPrefetchProvider } from '@/components/overview-prefetch-provider'
 import { PageTitleProvider } from '@/components/page-title-provider'
 import { Sidebar } from '@/components/sidebar'
-import { TopBar } from '@/components/topbar'
+import { TopBar } from '@/components/stocks-topbar'
 import type { ReactNode } from 'react'
 
 export const AppShell = ({ children }: { children: ReactNode }) => {

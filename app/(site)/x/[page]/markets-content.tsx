@@ -14,7 +14,7 @@ const formatCommodityValue = (value: number | null) => (value === null ? 'N/A' :
 const formatPercentValue = (value: number | null, digits: number) =>
   value === null ? 'N/A' : `${value >= 0 ? '+' : ''}${value.toFixed(digits)}%`
 
-export const Markets = () => {
+export const MarketsContent = () => {
   const rootRef = useRef<HTMLDivElement>(null)
   const hasAnimatedRef = useRef(false)
   const cachedData = getCachedMarketsData()

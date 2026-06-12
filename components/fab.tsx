@@ -15,9 +15,9 @@ interface MenuItem {
 }
 
 const navItems: MenuItem[] = [
-  { icon: 'arrow-right', label: 'Accounts', path: '/x', color: 'hsl(187,90%,51%)' },
-  { icon: 'arrow-right', label: 'Stakes', path: '/x/stakes', color: 'hsl(280,65%,60%)' },
-  { icon: 'arrow-right', label: 'Bets', path: '/x/bets', color: 'hsl(160,70%,45%)' }
+  { icon: 'arrow-right', label: 'Portfolio', path: '/x', color: 'hsl(187,90%,51%)' },
+  { icon: 'arrow-right', label: 'Markets', path: '/x/markets', color: 'hsl(280,65%,60%)' },
+  { icon: 'arrow-right', label: 'Explore', path: '/x/explore', color: 'hsl(160,70%,45%)' }
 ]
 
 const positions = [

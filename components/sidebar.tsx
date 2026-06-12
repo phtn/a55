@@ -22,9 +22,9 @@ import { Button } from './ui/button'
 import { Menu } from './ui/menu'
 
 const navItems: { icon: IconName; label: string; path: string }[] = [
-  { icon: 'theme', label: 'Accounts', path: '/x' },
-  { icon: 'cf-pen', label: 'Stakes', path: '/x/stakes' },
-  { icon: 'information', label: 'Bets', path: '/x/bets' }
+  { icon: 'theme', label: 'Portfolio', path: '/x' },
+  { icon: 'cf-pen', label: 'Markets', path: '/x/markets' },
+  { icon: 'information', label: 'Explore', path: '/x/explore' }
 ]
 
 export const Sidebar = () => {
@@ -99,12 +99,9 @@ export const Sidebar = () => {
       <div className='h-16 flex items-center justify-center border-b-[0.5px] border-dotted border-border'>
         <div className='flex items-center space-x-2 ps-6 pe-1 h-16 w-full'>
           {/*<Icon name='369' className='size-6 opacity-90' />*/}
-          <h1 className='font-poly font-bold italic text-foreground/80 text-base md:text-xl whitespace-nowrap tracking-tight leading-5 space-x-2'>
-            <span>
-              <span className='opacity-70'>36</span>
-              <span className='font-medium opacity-70'></span>
-            </span>
-            <span className='font-semibold'>Stake St</span>
+          <h1 className='font-poly font-bold italic text-foreground/80 text-base md:text-xl whitespace-nowrap tracking-wider leading-5'>
+            <span className=''>A</span>
+            <span className='opacity-70 font-semibold'>55</span>
           </h1>
         </div>
       </div>

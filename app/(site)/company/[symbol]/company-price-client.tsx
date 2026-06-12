@@ -708,7 +708,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
   )
 
   return (
-    <div ref={rootRef} className='space-y-24'>
+    <div ref={rootRef} className='space-y-6 w-7xl'>
       <div className='flex justify-between h-[50lvh] gap-16'>
         <div data-animate='page-header' className='flex flex-col sm:flex-row sm:justify-between'>
           <div className='md:w-2xl 2xl:w-3xl'>
@@ -752,7 +752,7 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
               </div>
             </Activity>
 
-            <div data-animate='hero-card' className='md:flex'>
+            <div data-animate='hero-card' className='md:flex w-xl'>
               <div
                 data-animate='hero-shell'
                 className='rounded-xl bg-linear-to-b from-border/5 to-transparent p-0 md:px-4'>
@@ -815,14 +815,14 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
           </div>
         </div>
 
-        <div className='-mt-2'>
-          <div data-animate='hero-shell' className='space-y-8'>
-            <div className='grid grid-cols-2 gap-2.5'>
+        <div className='w-xl'>
+          <div data-animate='hero-shell' className='space-y-8 w-full'>
+            <div className='grid grid-cols-2 gap-2.5 w-full'>
               {stats.map((stat, index) => (
                 <div
                   key={index}
                   data-animate='stats-card'
-                  className='rounded-xl font-display bg-border/6 ps-2 pe-6 py-2'>
+                  className='rounded-xl font-display bg-border/6 ps-4 pe-6 py-2'>
                   <Eyebrow>{stat.label}</Eyebrow>
                   <p className='mt-2 font-medium text-foreground text-base'>{stat.value}</p>
                 </div>
@@ -860,12 +860,12 @@ export const CompanyPriceClient = ({ symbol }: CompanyPriceClientProps) => {
             </div>
           </div>
         </div>
-        <div className='bg-linear-to-b from-border/20 h-full hidden 2xl:flex 2xl:w-3xs'></div>
+        {/*<div className='bg-linear-to-b from-border/20 h-full hidden 2xl:flex 2xl:w-3xs'></div>*/}
       </div>
 
       {status === 'ready' && data && (
         <>
-          <div className='rounded-xl mt-10 space-y-10 w-6xl'>
+          <div className='rounded-xl mt-4 space-y-8 w-7xl'>
             <div data-animate='section-heading' className='space-y-1'>
               <Title>Fundamentals</Title>
             </div>

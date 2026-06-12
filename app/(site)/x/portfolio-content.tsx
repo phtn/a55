@@ -340,7 +340,7 @@ const fetchYf2 = async <T,>(request: Yf2RequestBody, signal: AbortSignal) => {
   return payload.data
 }
 
-export const Content = ({ page }: ContentProps) => {
+export const PortfolioContent = ({ page }: ContentProps) => {
   const rootRef = useRef<HTMLDivElement>(null)
   const quoteAnimatedRef = useRef(false)
   const moversAnimatedRef = useRef(false)
@@ -687,7 +687,7 @@ export const Content = ({ page }: ContentProps) => {
   const activeQuote = quotes.find((quote) => quote.symbol === activeSymbol) ?? quotes[0] ?? null
 
   return (
-    <div ref={rootRef} className='relative w-full max-w-7xl space-y-8'>
+    <div ref={rootRef} className='relative w-full max-w-6xl space-y-8'>
       <div className='hidden md:flex absolute right-1/3 -top-1'>
         <div className='flex items-center p-2 w-16 mr-4 h-10'>
           {quoteStatus === 'ready' && (
@@ -745,7 +745,7 @@ export const Content = ({ page }: ContentProps) => {
 
       {quoteStatus === 'ready' && activeQuote && (
         <div className=''>
-          <div className='grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_20rem]'>
+          <div className='flex w-full'>
             <div data-overview-quote-panel className='rounded-lg bg-border/2 p-0'>
               <div className='flex gap-4 flex-row items-start justify-between'>
                 <div className='space-y-1'>
@@ -768,7 +768,7 @@ export const Content = ({ page }: ContentProps) => {
                 </div>
               </div>
 
-              <div className='mt-4 h-80'>
+              <div className='mt-4 h-80 flex w-3xl'>
                 <EvilAreaChart
                   data={activeQuote.history}
                   chartConfig={getPriceChartConfig(
@@ -804,7 +804,7 @@ export const Content = ({ page }: ContentProps) => {
               </div>
             </div>
 
-            <div data-overview-quote-panel className='-mt-2'>
+            <div data-overview-quote-panel className='-mt-2 w-3xl'>
               <div className='grid grid-cols-2 gap-2'>
                 <div className='rounded-xl bg-background/80 p-3'>
                   <Eyebrow>Previous</Eyebrow>

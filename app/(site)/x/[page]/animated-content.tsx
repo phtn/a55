@@ -4,8 +4,8 @@ import { Page } from '@/types/dashboard'
 import gsap from 'gsap'
 import { Suspense, useEffect, useRef } from 'react'
 import { Content } from '../content'
-import { BetsPage } from './bets-page'
-import { Stakes } from './stakes-page'
+import { ExploreContent } from './explore-content'
+import { MarketsContent } from './markets-content'
 
 interface AnimatedContentProps {
   page: Page
@@ -49,12 +49,12 @@ const C = ({ page }: AnimatedContentProps) => {
   }, [page])
 
   switch (page) {
-    case 'stakes':
-      return <Stakes />
-    case 'bets':
+    case 'markets':
+      return <MarketsContent />
+    case 'explore':
       return (
         <div ref={rootRef}>
-          <BetsPage />
+          <ExploreContent />
         </div>
       )
     default:

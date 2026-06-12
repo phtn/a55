@@ -90,7 +90,7 @@ export function HeroSection() {
 
       <div className='fixed bottom-8 right-8 md:bottom-12 md:right-12'>
         <div className='border border-border px-3 py-1 font-cm text-[8px] lowercase tracking-widest text-muted-foreground'>
-          stake-st v0.10
+          A55 v0.1
         </div>
       </div>
     </section>
@@ -120,7 +120,7 @@ const Hero = ({
       <SplitFlapAudioProvider>
         <div className='relative'>
           <SplitFlapText
-            text='36*stake*St'
+            text='alpha*55'
             speed={64}
             size='2.5rem'
             className='font-display font-medium'

@@ -2,7 +2,7 @@ import { AppShell } from '@/components/app-shell'
 import { ConvexClientProvider } from '@/ctx/convex/client'
 import { Metadata } from 'next'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
-import { Content } from './content'
+import { PortfolioContent } from './portfolio-content'
 
 interface PageProps {
   params: Promise<{ account: string }>
@@ -22,7 +22,7 @@ export default async function X() {
     <ConvexClientProvider>
       <NuqsAdapter>
         <AppShell>
-          <Content />
+          <PortfolioContent />
         </AppShell>
       </NuqsAdapter>
     </ConvexClientProvider>

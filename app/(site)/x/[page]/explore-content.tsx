@@ -63,7 +63,7 @@ const limitStocksPerSector = (stocks: ExploreStock[], sectorFilter: string) => {
     .flatMap(([, sectorStocks]) => sectorStocks.slice(0, STOCKS_PER_SECTOR))
 }
 
-export const Explore = () => {
+export const ExploreContent = () => {
   const rootRef = useRef<HTMLDivElement>(null)
   const hasAnimatedRef = useRef(false)
   const [stocks, setStocks] = useState<ExploreStock[]>(() => getCachedExploreData() ?? [])

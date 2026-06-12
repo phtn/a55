@@ -9,6 +9,7 @@ import { Activity, Ref, useCallback, useEffect, useRef } from 'react'
 import { PixelGrid } from 'three-px-react'
 import { usePageTitle } from './page-title-provider'
 import { Typewrite } from './text/typewriter'
+import { useTheme } from './theme-provider'
 import { ThemeToggle } from './theme-toggle'
 import { Button } from './ui/button'
 
@@ -18,13 +19,14 @@ const normalizeWalletAddress = (address: string | null | undefined) => {
 }
 
 const formatWalletAddress = (address: string | null) => {
-  if (!address) return 'Connect Wallet'
+  if (!address) return 'Connect'
   if (address.length <= 12) return address
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 export const TopBar = () => {
   const pathname = usePathname()
+  const { resolvedTheme } = useTheme()
   const { open: openAppKit } = useAppKit()
   const { caipNetwork } = useAppKitNetwork()
   const { address: evmWalletAddress, isConnected: isEvmWalletConnected } = useAppKitAccount({
@@ -93,9 +95,9 @@ export const TopBar = () => {
         <div id='primary' className='flex h-full w-full items-center px-4 md:px-8'>
           <div className='flex w-full max-w-6xl items-center justify-between gap-4'>
             <div className='flex min-w-0 items-center gap-4'>
-              {/*<StakeHeader resolvedTheme={resolvedTheme} />*/}
+              <StakeHeader resolvedTheme={resolvedTheme} />
               <Typewrite
-                id='company-name'
+                id='page-title'
                 text={pageTitle}
                 showCursor={false}
                 speed={22}

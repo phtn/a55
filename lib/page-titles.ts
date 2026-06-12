@@ -1,9 +1,9 @@
 import type { Page } from '@/types/dashboard'
 
-const ROUTE_TITLES: Record<Page | 'accounts', string> = {
-  accounts: 'Accounts',
-  stakes: 'Stakes',
-  bets: 'Bets'
+const ROUTE_TITLES: Record<Page | 'portfolio', string> = {
+  portfolio: 'Accounts',
+  markets: 'Markets',
+  explore: 'Explorer'
 }
 
 export const getRoutePageTitle = (page: Page) => ROUTE_TITLES[page]
@@ -19,7 +19,7 @@ export const getPathnamePageTitle = (pathname: string) => {
   const segments = pathname.split('/').filter(Boolean)
 
   if (segments.length === 0) {
-    return ROUTE_TITLES.accounts
+    return ROUTE_TITLES.markets
   }
 
   if (segments[0] === 'company' && segments[1]) {

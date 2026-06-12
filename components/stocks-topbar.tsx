@@ -38,7 +38,7 @@ const normalizeWalletAddress = (address: string | null | undefined) => {
 }
 
 const formatWalletAddress = (address: string | null) => {
-  if (!address) return 'Connect Wallet'
+  if (!address) return 'Connect'
   if (address.length <= 12) return address
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
@@ -128,35 +128,30 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
   return (
     <header className='sticky top-0 z-50 bg-background/85 backdrop-blur supports-backdrop-filter:bg-background/70'>
       <div className='h-16 border-b-[0.5px] border-border border-dotted'>
-        <div id='primary' className='flex h-full w-full items-center px-4 md:px-8'>
-          <div className='flex w-full max-w-6xl items-center justify-between gap-4'>
-            <div className='flex min-w-0 items-center gap-4'>
-              <StreetHeader resolvedTheme={resolvedTheme} />
+        <div id='primary' className='flex h-full max-w-7xl items-center'>
+          <div className='flex w-full items-center justify-between gap-8'>
+            <div className='flex px-8 items-center w-full'>
+              {/*<StreetHeader resolvedTheme={resolvedTheme} />*/}
               <Typewrite
-                id='company-name'
+                id='page-title'
                 text={pageTitle}
                 showCursor={false}
                 speed={22}
-                className='truncate font-display font-medium text-foreground/90 text-sm md:text-lg tracking-[0.02em] leading-4.25 text-balance max-w-[18ch] md:max-w-[32ch] line-clamp-2 md:line-clamp-none'
+                className='truncate font-display font-medium text-foreground/90 text-sm md:text-xl tracking-[0.02em] leading-4 text-balance max-w-[18ch] md:max-w-[32ch] sm:line-clamp-2 xl:max-w-[6ch] xl:whitespace-nowrap xl:line-clamp-none'
               />
             </div>
-            <div className='shrink-0'>
-              <Button
-                id='wallet-connector'
-                type='button'
-                onClick={() => {
-                  void handleWalletConnectorClick()
-                }}
-                className={cn('font-display text-sm flex items-center gap-2 rounded-md', {
-                  'tracking-wider': isWalletConnected
-                })}>
-                {isWalletConnected && <span className='size-2 rounded-full bg-background' aria-hidden />}
-                <span>{walletButtonLabel}</span>
-                <Activity mode={isWalletConnected ? 'hidden' : 'visible'}>
-                  <Icon name='two-way' />
-                </Activity>
-              </Button>
-            </div>
+            {websiteUrl && websiteLabel && (
+              <a
+                id='company-website-link'
+                href={websiteUrl}
+                target='_blank'
+                rel='noreferrer'
+                className='flex items-center font-display font-thin text-sm text-foreground/80 hover:text-foreground hover:underline underline-offset-3 decoration-dotted decoration-foreground/50 tracking-wider'>
+                <span>{websiteLabel}</span>
+                <Icon name='arrow-right' className='size-3 -rotate-23' />
+              </a>
+            )}
+
             <StreetToolbar
               websiteLabel={websiteLabel}
               websiteUrl={websiteUrl}
@@ -164,6 +159,9 @@ export const TopBar = ({ companyWebsite: companyWebsiteProp = null }: TopBarProp
               handleSearch={handleSearch}
               handleSearchQueryChange={handleSearchQueryChange}
               searchQuery={query}
+              handleConnect={handleWalletConnectorClick}
+              isWalletConnected={isWalletConnected}
+              walletButtonLabel={walletButtonLabel}
             />
           </div>
         </div>
@@ -204,6 +202,9 @@ interface StreetToolbarProps {
   handleSearch: (e: SubmitEvent<HTMLFormElement>) => void
   handleSearchQueryChange: (e: ChangeEvent<HTMLInputElement>) => void
   searchQuery: string
+  handleConnect: VoidFunction
+  isWalletConnected: boolean
+  walletButtonLabel: string
 }
 export const StreetToolbar = ({
   websiteLabel,
@@ -211,40 +212,45 @@ export const StreetToolbar = ({
   searchInputRef,
   searchQuery,
   handleSearchQueryChange,
-  handleSearch
+  handleSearch,
+  handleConnect,
+  isWalletConnected,
+  walletButtonLabel
 }: StreetToolbarProps) => {
   return (
     <div className='flex items-center'>
-      <div className='flex items-center w-3xs'>
-        {websiteUrl && websiteLabel && (
-          <a
-            id='company-website-link'
-            href={websiteUrl}
-            target='_blank'
-            rel='noreferrer'
-            className='flex items-center font-display font-thin text-sm text-foreground/80 hover:text-foreground hover:underline underline-offset-2 decoration-dotted decoration-foreground/50 tracking-wider'>
-            <span>{websiteLabel}</span>
-            <Icon name='arrow-right' className='size-3 -rotate-23' />
-          </a>
-        )}
+      <div className='shrink-0'>
+        <Button
+          id='wallet-connector'
+          type='button'
+          onClick={handleConnect}
+          className={cn('font-display text-sm flex items-center gap-2 rounded-md', {
+            'tracking-wider': isWalletConnected
+          })}>
+          {isWalletConnected && <span className='size-2 rounded-full bg-background' aria-hidden />}
+          <span>{walletButtonLabel}</span>
+          <Activity mode={isWalletConnected ? 'hidden' : 'visible'}>
+            <Icon name='two-way' />
+          </Activity>
+        </Button>
       </div>
-      <div className='h-6 w-44 flex items-center space-x-4'>
-        <Icon name='two-way' className='size-5 hidden md:flex text-foreground/70' />
-        <Icon name='folder' className='size-5 hidden md:flex text-foreground/70' />
-        <div className='md:hidden flex'>
-          <ThemeToggle />
+      <div className='flex items-center space-x-8'>
+        <div className='h-6 w-16 flex items-center justify-center'>
+          <div className='flex'>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
-      <form onSubmit={handleSearch} className='hidden md:flex pl-4 w-3xs mr-0'>
+      {/*<form onSubmit={handleSearch} className='flex pl-4 w-10 mr-0'>
         <input
           ref={searchInputRef}
           value={searchQuery}
           onChange={handleSearchQueryChange}
           placeholder='search'
-          className='h-8 w-full ps-2 rounded-xs text-sm font-display text-foreground outline-none placeholder:text-foreground/80 placeholder:tracking-wider placeholder:font-light focus:ring-1 focus:ring-foreground/20 mr-4'
+          className='h-8 w-24 ps-2 rounded-xs text-sm font-display text-foreground outline-none placeholder:text-foreground/80 placeholder:tracking-wider placeholder:font-light focus:ring-1 focus:ring-foreground/20 mr-4'
         />
-      </form>
-      <Icon name='book-open' className='size-5 hidden md:flex flex-1 text-foreground/70' />
+      </form>*/}
+      {/*<Icon name='book-open' className='size-5 hidden md:flex flex-1 text-foreground/70' />*/}
     </div>
   )
 }
